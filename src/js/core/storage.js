@@ -110,7 +110,6 @@ export function resetForgeData() {
   localStorage.removeItem(KEYS.draft);
   localStorage.removeItem(KEYS.settings);
   localStorage.removeItem(KEYS.routine);
-  localStorage.removeItem(KEYS.routines);
 }
 
 export function makeBackup() {
@@ -132,5 +131,9 @@ export function restoreBackup(payload) {
   saveDB(payload.db);
   if (payload.settings) saveSettings(payload.settings);
   if (payload.activeRoutineId) saveActiveRoutineId(payload.activeRoutineId);
-  if (Array.isArray(payload.routines)) writeJSON(KEYS.routines, payload.routines);
+
+  if (Array.isArray(payload.routines)) {
+    writeJSON(KEYS.routines, payload.routines);
+    setTimeout(() => location.reload(), 0);
+  }
 }

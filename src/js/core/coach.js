@@ -15,6 +15,11 @@ function formatWeight(value) {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(".", ",");
 }
 
+function formatRepTarget(min, max) {
+  if (min === max) return `${min} reps`;
+  return `${min}-${max} reps`;
+}
+
 function sameWeightImprovement(set) {
   if (!set.previous) return "";
   if (Number(set.weight || 0) !== Number(set.previous.weight || 0)) return "";
@@ -100,18 +105,27 @@ function nextSetAdvice(exercise, set) {
     return `Mantén ${weightText} durante este ejercicio. No hace falta subir carga a mitad de la sesión.`;
   }
 
-  const lowerTarget = Math.max(exercise.min, reps - 1);
-  const upperTarget = Math.min(exercise.max, reps);
-
   if (reps === exercise.max && rir <= 1) {
-    return `Mantén ${weightText} y busca ${lowerTarget}-${exercise.max} reps. Si repites el techo, confirmamos progresión.`;
+    const lower = Math.max(exercise.min, exercise.max - 1);
+    return `Mantén ${weightText} y busca ${formatRepTarget(lower, exercise.max)}. Si repites el techo, confirmamos progresión.`;
   }
 
   if (rir >= 3) {
-    return `Mantén ${weightText} y busca ${Math.min(exercise.max, reps + 1)} reps, acercándote más al fallo con buena técnica.`;
+    const target = Math.min(exercise.max, reps + 1);
+    return `Mantén ${weightText} y busca al menos ${target} reps, acercándote más al fallo con buena técnica.`;
   }
 
-  return `Mantén ${weightText} y busca ${lowerTarget}-${upperTarget} reps. La caída ligera entre series es normal.`;
+  // En series sucesivas aceptamos una pequeña caída por fatiga, pero evitamos
+  // objetivos absurdos como “12-12”. Si estás justo en el mínimo, el objetivo
+  // práctico es mantenerlo o sumar una repetición.
+  const lowerTarget = reps <= exercise.min
+    ? exercise.min
+    : Math.max(exercise.min, reps - 1);
+  const upperTarget = reps <= exercise.min
+    ? Math.min(exercise.max, exercise.min + 1)
+    : Math.min(exercise.max, reps);
+
+  return `Mantén ${weightText} y busca ${formatRepTarget(lowerTarget, upperTarget)}. La caída ligera entre series es normal.`;
 }
 
 function nextSessionAdvice(exercise) {

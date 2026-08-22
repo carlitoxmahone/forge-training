@@ -27,7 +27,7 @@ import { renderProgress } from "./views/progressView.js";
 
 const state = {
   routineId: "dia1",
-  workoutStart: Date.now(),
+  workoutStart: null,
   exercises: [],
   restInterval: null,
   restRemaining: 0,
@@ -51,6 +51,12 @@ function persistDraft() {
   saveDraft(draftPayload());
 }
 
+function hasCompletedSets(exercises = []) {
+  return exercises.some(exercise =>
+    (exercise.sets || []).some(set => set.done)
+  );
+}
+
 function loadOrCreateDraft() {
   const db = loadDB();
   const saved = loadDraft();
@@ -61,14 +67,32 @@ function loadOrCreateDraft() {
     Array.isArray(saved.exercises) &&
     saved.exercises.length === currentRoutine().exercises.length
   ) {
-    state.workoutStart = saved.workoutStart || Date.now();
     state.exercises = saved.exercises;
+
+    // Compatibilidad con la versión anterior: si todavía no se había
+    // registrado ninguna serie, el cronómetro debe seguir en 00:00.
+    state.workoutStart = hasCompletedSets(saved.exercises)
+      ? (saved.workoutStart || Date.now())
+      : null;
+
+    persistDraft();
     return;
   }
 
-  state.workoutStart = Date.now();
+  state.workoutStart = null;
   state.exercises = createRoutineState(currentRoutine(), db);
   persistDraft();
+}
+
+function startWorkout() {
+  if (state.workoutStart) return;
+  state.workoutStart = Date.now();
+  persistDraft();
+}
+
+function enterWorkout() {
+  startWorkout();
+  switchTab("train");
 }
 
 function renderAll() {
@@ -116,7 +140,7 @@ function toast(message) {
 
 function activateRoutine(id) {
   if (id === state.routineId) {
-    switchTab("train");
+    enterWorkout();
     return;
   }
 
@@ -134,7 +158,7 @@ function activateRoutine(id) {
   clearDraft();
   loadOrCreateDraft();
   renderAll();
-  switchTab("train");
+  enterWorkout();
 }
 
 function editSet(target) {
@@ -172,6 +196,10 @@ function toggleSet(exerciseIndex, setIndex) {
     toast("Introduce las repeticiones.");
     return;
   }
+
+  // Seguridad: si por cualquier motivo se completa una serie sin haber
+  // entrado mediante el botón Entrenar, aquí comienza la sesión.
+  startWorkout();
 
   set.done = true;
   persistDraft();
@@ -251,13 +279,15 @@ function finishWorkout() {
     date: new Date().toISOString(),
     routineId: state.routineId,
     name: `${currentRoutine().name} · ${currentRoutine().subtitle}`,
-    durationSec: Math.floor((Date.now() - state.workoutStart) / 1000),
+    durationSec: state.workoutStart
+      ? Math.floor((Date.now() - state.workoutStart) / 1000)
+      : 0,
     exercises
   });
 
   saveDB(db);
   clearDraft();
-  state.workoutStart = Date.now();
+  state.workoutStart = null;
   state.exercises = createRoutineState(currentRoutine(), db);
   persistDraft();
 
@@ -315,11 +345,14 @@ async function configureServiceWorker() {
 
 function bindEvents() {
   document.querySelectorAll(".bottom-nav button").forEach(button => {
-    button.addEventListener("click", () => switchTab(button.dataset.tab));
+    button.addEventListener("click", () => {
+      if (button.dataset.tab === "train") enterWorkout();
+      else switchTab(button.dataset.tab);
+    });
   });
 
-  document.querySelector("#startWorkoutBtn").addEventListener("click", () => switchTab("train"));
-  document.querySelector("#resumeWorkoutBtn").addEventListener("click", () => switchTab("train"));
+  document.querySelector("#startWorkoutBtn").addEventListener("click", enterWorkout);
+  document.querySelector("#resumeWorkoutBtn").addEventListener("click", enterWorkout);
 
   document.querySelector("#todayRoutineSelect").addEventListener("change", event => {
     activateRoutine(event.target.value);
@@ -389,6 +422,7 @@ function bindEvents() {
     resetForgeData();
     state.routineId = "dia1";
     saveActiveRoutineId(state.routineId);
+    state.workoutStart = null;
     loadOrCreateDraft();
     renderAll();
     toast("Datos borrados.");
@@ -397,9 +431,13 @@ function bindEvents() {
 
 function startWorkoutClock() {
   const tick = () => {
-    document.querySelector("#workoutClock").textContent =
-      formatClock((Date.now() - state.workoutStart) / 1000);
+    const elapsed = state.workoutStart
+      ? (Date.now() - state.workoutStart) / 1000
+      : 0;
+
+    document.querySelector("#workoutClock").textContent = formatClock(elapsed);
   };
+
   tick();
   setInterval(tick, 1000);
 }

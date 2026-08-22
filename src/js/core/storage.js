@@ -3,6 +3,7 @@ const KEYS = {
   settings: "forge.settings.v1",
   draft: "forge.draft.v1",
   routine: "forge.activeRoutine.v1",
+  routines: "forge.routines.v1",
   migrated: "forge.migrated.v1"
 };
 
@@ -109,15 +110,17 @@ export function resetForgeData() {
   localStorage.removeItem(KEYS.draft);
   localStorage.removeItem(KEYS.settings);
   localStorage.removeItem(KEYS.routine);
+  localStorage.removeItem(KEYS.routines);
 }
 
 export function makeBackup() {
   return {
-    forgeBackupVersion: 1,
+    forgeBackupVersion: 2,
     exportedAt: new Date().toISOString(),
     db: loadDB(),
     settings: loadSettings(),
-    activeRoutineId: loadActiveRoutineId()
+    activeRoutineId: loadActiveRoutineId(),
+    routines: readJSON(KEYS.routines, null)
   };
 }
 
@@ -125,7 +128,9 @@ export function restoreBackup(payload) {
   if (!payload?.db?.workouts || !Array.isArray(payload.db.workouts)) {
     throw new Error("Copia de seguridad no válida.");
   }
+
   saveDB(payload.db);
   if (payload.settings) saveSettings(payload.settings);
   if (payload.activeRoutineId) saveActiveRoutineId(payload.activeRoutineId);
+  if (Array.isArray(payload.routines)) writeJSON(KEYS.routines, payload.routines);
 }

@@ -229,6 +229,42 @@
   font-size: 11px;
 }
 
+/* FORGE 0.4 — coach adaptativo */
+.coach-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.08fr 1.15fr;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.coach-section {
+  min-width: 0;
+  padding: 13px 14px;
+  line-height: 1.45;
+}
+
+.coach-section + .coach-section {
+  border-left: 1px solid var(--line);
+}
+
+.coach-section > div:last-child {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.coach-next-set {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.coach-next-set .exercise-coach-label {
+  color: var(--accent);
+}
+
+.coach-next-session .exercise-coach-label {
+  color: var(--good);
+}
+
 @media (max-width: 650px) {
   .sets-stack {
     gap: 9px;
@@ -293,6 +329,19 @@
   #restOverlay .rest-actions > * {
     flex: 1 1 0;
     min-height: 40px;
+  }
+
+  .coach-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coach-section + .coach-section {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .coach-section {
+    padding: 12px 13px;
   }
 }
 

@@ -1,4 +1,4 @@
-import { formatDate } from "../core/utils.js";
+import { formatDate, escapeHtml } from "../core/utils.js";
 import { totalWorkoutVolume } from "../core/workout.js";
 import {
   normalizeExerciseMode,
@@ -43,8 +43,8 @@ export function renderProgress(db, routine) {
 
   history.innerHTML = [...workouts].reverse().slice(0, 10).map(workout => `
     <article class="history-item">
-      <strong>${workout.name}</strong>
-      <small>${formatDate(workout.date)} · ${workoutMetricText(workout)}</small>
+      <strong>${escapeHtml(workout.name || "Entrenamiento")}</strong>
+      <small>${formatDate(workout.date)} · ${escapeHtml(workoutMetricText(workout))}</small>
     </article>
   `).join("");
 

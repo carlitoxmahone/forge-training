@@ -1,4 +1,5 @@
 import { clearDraft } from "./core/storage.js";
+import "./exerciseHistory.js";
 
 function forceTodayOnOpen() {
   document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.add("hidden"));
@@ -7,6 +8,11 @@ function forceTodayOnOpen() {
   document.querySelectorAll(".bottom-nav button").forEach(button => {
     button.classList.toggle("active", button.dataset.tab === "today");
   });
+}
+
+function setVersionBadge() {
+  const badge = document.querySelector(".version-badge");
+  if (badge) badge.textContent = "0.6";
 }
 
 function cleanLegacyZeroInputs() {
@@ -39,6 +45,7 @@ function bindDiscardWorkout() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  setVersionBadge();
   forceTodayOnOpen();
   cleanLegacyZeroInputs();
   bindDiscardWorkout();

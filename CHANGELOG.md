@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0 — Editor de rutinas
+
+- Cada día tiene ahora un botón Editar dentro de Rutinas.
+- Se puede cambiar el nombre del día y su prioridad/subtítulo.
+- Se pueden modificar series efectivas, calentamientos y rangos de repeticiones.
+- Se puede marcar un ejercicio como trabajo al fallo.
+- Se puede cambiar el orden de los ejercicios con controles subir/bajar.
+- Se pueden eliminar ejercicios y añadir ejercicios nuevos.
+- Los nombres de ejercicios existentes se protegen para conservar correctamente su historial.
+- Las rutinas personalizadas se guardan en el navegador y se incluyen en las copias de seguridad.
+- Cada día puede restaurarse individualmente a la rutina original sin borrar el historial.
+- Editar un día no borra una sesión activa perteneciente a otro día.
+
 ## 0.7.0 — Resumen final + PRs
 
 - Al finalizar un entrenamiento aparece un resumen completo de la sesión.

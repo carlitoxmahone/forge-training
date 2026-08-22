@@ -209,12 +209,20 @@ function addExercise() {
   document.querySelector('#routineEditorExercises article:last-child input[data-editor-field="name"]')?.focus();
 }
 
+function draftBelongsToRoutine(routineId) {
+  return loadDraft()?.routineId === routineId;
+}
+
 function hasActiveProgress(routineId) {
   const draft = loadDraft();
   if (!draft || draft.routineId !== routineId) return false;
   return (draft.exercises || []).some(exercise =>
     (exercise.sets || []).some(set => set.done)
   );
+}
+
+function clearEditedRoutineDraft(routineId) {
+  if (draftBelongsToRoutine(routineId)) clearDraft();
 }
 
 function validateEditor() {
@@ -275,7 +283,7 @@ function saveEditor() {
   const clean = clone(editing);
   clean.exercises.forEach(exercise => delete exercise._isNew);
   saveRoutineConfiguration(clean);
-  clearDraft();
+  clearEditedRoutineDraft(editing.id);
   location.reload();
 }
 
@@ -292,7 +300,7 @@ function resetEditor() {
   }
 
   resetRoutineToDefault(editing.id);
-  clearDraft();
+  clearEditedRoutineDraft(editing.id);
   location.reload();
 }
 

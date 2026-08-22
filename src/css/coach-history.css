@@ -1,0 +1,65 @@
+/* FORGE 0.9 — COACH histórico */
+.coach-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.coach-grid .coach-section {
+  border-left: 0;
+  border-top: 0;
+}
+
+.coach-grid .coach-section:nth-child(even) {
+  border-left: 1px solid var(--line);
+}
+
+.coach-grid .coach-section:nth-child(n+3) {
+  border-top: 1px solid var(--line);
+}
+
+.coach-trend {
+  background: color-mix(in srgb, var(--panel-2) 55%, transparent);
+}
+
+.coach-trend .exercise-coach-label {
+  color: var(--muted);
+}
+
+.coach-grid[data-trend-kind="progress"] .coach-trend,
+.coach-grid[data-trend-kind="improving"] .coach-trend {
+  background: color-mix(in srgb, var(--good) 7%, transparent);
+}
+
+.coach-grid[data-trend-kind="progress"] .coach-trend .exercise-coach-label,
+.coach-grid[data-trend-kind="improving"] .coach-trend .exercise-coach-label {
+  color: var(--good);
+}
+
+.coach-grid[data-trend-kind="stagnant"] .coach-trend {
+  background: color-mix(in srgb, var(--warn) 7%, transparent);
+}
+
+.coach-grid[data-trend-kind="stagnant"] .coach-trend .exercise-coach-label {
+  color: var(--warn);
+}
+
+.coach-grid[data-trend-kind="decline"] .coach-trend {
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+}
+
+.coach-grid[data-trend-kind="decline"] .coach-trend .exercise-coach-label {
+  color: var(--danger);
+}
+
+@media (max-width: 650px) {
+  .coach-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coach-grid .coach-section:nth-child(even) {
+    border-left: 0;
+  }
+
+  .coach-grid .coach-section:nth-child(n+2) {
+    border-top: 1px solid var(--line);
+  }
+}

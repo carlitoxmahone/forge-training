@@ -140,7 +140,7 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
 
       <div class="sets-stack">${rows}</div>
 
-      <div class="exercise-coach coach-grid">
+      <div class="exercise-coach coach-grid" data-trend-kind="${advice.trendKind}">
         <div class="coach-section coach-reading">
           <div class="exercise-coach-label">LECTURA</div>
           <div>${escapeHtml(advice.reading)}</div>
@@ -148,6 +148,10 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
         <div class="coach-section coach-next-set">
           <div class="exercise-coach-label">SIGUIENTE SERIE</div>
           <div>${escapeHtml(advice.nextSet)}</div>
+        </div>
+        <div class="coach-section coach-trend">
+          <div class="exercise-coach-label">TENDENCIA · ${advice.historySessions} SES.</div>
+          <div>${escapeHtml(advice.trend)}</div>
         </div>
         <div class="coach-section coach-next-session">
           <div class="exercise-coach-label">PRÓXIMA SESIÓN</div>

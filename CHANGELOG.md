@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — Descanso integrado
+
+- El temporizador de descanso ya no bloquea toda la pantalla.
+- El descanso aparece como una tarjeta compacta encima de la navegación inferior.
+- Puedes seguir viendo el ejercicio, el COACH y preparar la siguiente serie mientras cuenta.
+- Se mantienen los controles −15 s, Cerrar y +15 s.
+
 ## 0.2.0 — Entrada de series móvil
 
 - Eliminado el scroll horizontal de la tabla durante el entrenamiento.

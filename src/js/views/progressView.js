@@ -1,5 +1,22 @@
 import { formatDate } from "../core/utils.js";
 import { totalWorkoutVolume } from "../core/workout.js";
+import {
+  normalizeExerciseMode,
+  exerciseModeLabel,
+  setHasPerformance,
+  sessionPerformanceScore
+} from "../core/exerciseModes.js";
+
+function workoutMetricText(workout) {
+  const volume = totalWorkoutVolume(workout);
+  const sets = (workout.exercises || []).reduce((sum, exercise) =>
+    sum + (exercise.sets || []).filter(set => set.type !== "warmup").length, 0);
+
+  if (volume > 0) {
+    return `${sets} registros · ${Math.round(volume).toLocaleString("es-ES")} kg de volumen`;
+  }
+  return `${sets} registros · sesión sin volumen de carga`;
+}
 
 export function renderProgress(db, routine) {
   const workouts = db.workouts || [];
@@ -22,30 +39,33 @@ export function renderProgress(db, routine) {
 
   document.querySelector("#lastWorkoutTitle").textContent = last.name;
   document.querySelector("#lastWorkoutMeta").textContent =
-    `${formatDate(last.date)} · ${(last.exercises || []).length} ejercicios · ${lastSets} series · ${Math.round((last.durationSec || 0) / 60)} min`;
+    `${formatDate(last.date)} · ${(last.exercises || []).length} ejercicios · ${lastSets} registros · ${Math.round((last.durationSec || 0) / 60)} min`;
 
   history.innerHTML = [...workouts].reverse().slice(0, 10).map(workout => `
     <article class="history-item">
       <strong>${workout.name}</strong>
-      <small>${formatDate(workout.date)} · ${Math.round(totalWorkoutVolume(workout)).toLocaleString("es-ES")} kg de volumen</small>
+      <small>${formatDate(workout.date)} · ${workoutMetricText(workout)}</small>
     </article>
   `).join("");
 
-  const exerciseName = routine.exercises[0].name;
-  document.querySelector("#trendExerciseLabel").textContent = `${exerciseName} · tendencia`;
+  const firstDefinition = routine.exercises[0];
+  const exerciseName = firstDefinition.name;
+  const mode = normalizeExerciseMode(firstDefinition.mode);
+  document.querySelector("#trendExerciseLabel").textContent =
+    `${exerciseName} · ${exerciseModeLabel(mode)} · tendencia`;
 
   const scores = workouts.map(workout => {
-    const exercise = workout.exercises?.find(item => item.name === exerciseName);
+    const exercise = workout.exercises?.find(item =>
+      item.name === exerciseName && normalizeExerciseMode(item.mode) === mode
+    );
     if (!exercise) return null;
 
-    const workSets = exercise.sets.filter(set => set.type !== "warmup" && Number(set.reps || 0) > 0);
+    const workSets = exercise.sets.filter(set =>
+      set.type !== "warmup" && setHasPerformance(set, mode)
+    );
     if (!workSets.length) return null;
 
-    return Math.max(...workSets.map(set => {
-      const weight = Number(set.weight || 0);
-      const reps = Number(set.reps || 0);
-      return weight > 0 ? weight * (1 + reps / 30) : reps;
-    }));
+    return sessionPerformanceScore(workSets, mode);
   }).filter(value => value !== null).slice(-8);
 
   const bars = document.querySelector("#trendBars");
@@ -69,7 +89,7 @@ export function renderProgress(db, routine) {
 
   if (scores.length < 2) {
     document.querySelector("#trendValue").textContent = "Base creada";
-    document.querySelector("#trendText").textContent = "Necesitamos otra sesión comparable.";
+    document.querySelector("#trendText").textContent = "Necesitamos otra sesión comparable del mismo tipo.";
     return;
   }
 
@@ -78,6 +98,6 @@ export function renderProgress(db, routine) {
     `${percent >= 0 ? "↑" : "↓"} ${Math.abs(percent).toFixed(1)} %`;
   document.querySelector("#trendText").textContent =
     percent >= 0
-      ? "Tendencia de rendimiento positiva."
+      ? "Tendencia de rendimiento positiva para este tipo de ejercicio."
       : "Tendencia inferior a la referencia inicial.";
 }

@@ -1,5 +1,6 @@
 import { clearDraft } from "./core/storage.js";
 import "./exerciseHistory.js";
+import "./workoutSummary.js";
 
 function forceTodayOnOpen() {
   document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.add("hidden"));
@@ -12,7 +13,7 @@ function forceTodayOnOpen() {
 
 function setVersionBadge() {
   const badge = document.querySelector(".version-badge");
-  if (badge) badge.textContent = "0.6";
+  if (badge) badge.textContent = "0.7";
 }
 
 function cleanLegacyZeroInputs() {

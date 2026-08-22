@@ -20,9 +20,12 @@ export function renderRoutineList(routines, activeId) {
             <h3>${routine.name}</h3>
             <p class="routine-meta">${routine.subtitle} · ${routine.exercises.length} ejercicios · ${effective} series efectivas${warmups ? ` + ${warmups} calentamiento` : ""}</p>
           </div>
-          <button class="${routine.id === activeId ? "primary" : "secondary"} routine-open" data-routine-id="${routine.id}" type="button">
-            ${routine.id === activeId ? "Entrenar" : "Abrir"}
-          </button>
+          <div class="routine-card-actions">
+            <button class="secondary routine-edit" data-edit-routine-id="${routine.id}" type="button">Editar</button>
+            <button class="${routine.id === activeId ? "primary" : "secondary"} routine-open" data-routine-id="${routine.id}" type="button">
+              ${routine.id === activeId ? "Entrenar" : "Abrir"}
+            </button>
+          </div>
         </div>
 
         <div class="exercise-preview">

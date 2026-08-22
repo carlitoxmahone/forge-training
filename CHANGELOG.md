@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — Resumen final + PRs
+
+- Al finalizar un entrenamiento aparece un resumen completo de la sesión.
+- El resumen muestra duración, series efectivas, volumen y ejercicios registrados.
+- Se compara el volumen con la última sesión del mismo día cuando existe referencia previa.
+- FORGE detecta PRs comparando con el historial anterior, no con la sesión recién guardada.
+- Se detecta mejor rendimiento estimado, nueva carga máxima y récord de repeticiones con la misma carga.
+- La primera sesión de un ejercicio se guarda como referencia inicial y no se etiqueta falsamente como PR.
+- Añadido acceso directo a Progreso desde el resumen final.
+
 ## 0.6.0 — Historial por ejercicio
 
 - El nombre de cada ejercicio abre ahora su historial detallado.

@@ -1,13 +1,21 @@
 import {
-  ROUTINES,
   getRoutine,
   saveRoutineConfiguration,
-  resetRoutineToDefault
+  createRoutineConfiguration,
+  deleteRoutineConfiguration,
+  resetRoutineToDefault,
+  isDefaultRoutine
 } from "./data/routines.js";
-import { loadDraft, clearDraft } from "./core/storage.js";
+import {
+  loadDraft,
+  clearDraft,
+  loadActiveRoutineId,
+  saveActiveRoutineId
+} from "./core/storage.js";
 import { escapeHtml } from "./core/utils.js";
 
 let editing = null;
+let creating = false;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -35,19 +43,19 @@ function createShell() {
         <div>
           <div class="eyebrow">EDITOR DE RUTINA</div>
           <h2 id="routineEditorTitle">Editar día</h2>
-          <p class="muted">Los cambios se aplican al próximo entrenamiento.</p>
+          <p id="routineEditorIntro" class="muted">Los cambios se aplican al próximo entrenamiento.</p>
         </div>
         <button id="closeRoutineEditor" class="icon-btn" type="button" aria-label="Cerrar editor">×</button>
       </div>
 
       <div class="routine-editor-meta">
         <label>
-          <span>Nombre del día</span>
-          <input id="routineEditorName" type="text" maxlength="60">
+          <span>Nombre de la rutina</span>
+          <input id="routineEditorName" type="text" maxlength="60" placeholder="Ej. Push pesado">
         </label>
         <label>
           <span>Prioridad / subtítulo</span>
-          <input id="routineEditorSubtitle" type="text" maxlength="60">
+          <input id="routineEditorSubtitle" type="text" maxlength="60" placeholder="Ej. Pecho + tríceps">
         </label>
       </div>
 
@@ -59,11 +67,11 @@ function createShell() {
         <button id="addRoutineExercise" class="secondary" type="button">+ Ejercicio</button>
       </div>
 
-      <p class="routine-editor-help">Los nombres de ejercicios ya existentes se mantienen para conservar correctamente su historial. Los ejercicios nuevos sí pueden tener el nombre que quieras.</p>
+      <p id="routineEditorHelp" class="routine-editor-help">Los nombres de ejercicios ya existentes se mantienen para conservar correctamente su historial. Los ejercicios nuevos sí pueden tener el nombre que quieras.</p>
       <div id="routineEditorExercises" class="routine-editor-exercises"></div>
 
       <div class="routine-editor-footer">
-        <button id="resetRoutineEditor" class="danger" type="button">Restaurar original</button>
+        <button id="destructiveRoutineEditor" class="danger" type="button">Restaurar original</button>
         <div class="routine-editor-save-actions">
           <button id="cancelRoutineEditor" class="secondary" type="button">Cancelar</button>
           <button id="saveRoutineEditor" class="primary" type="button">Guardar cambios</button>
@@ -124,25 +132,72 @@ function renderExercises() {
   container.innerHTML = editing.exercises.map(exerciseRow).join("");
 }
 
+function configureShell() {
+  const destructive = document.querySelector("#destructiveRoutineEditor");
+  const save = document.querySelector("#saveRoutineEditor");
+  const intro = document.querySelector("#routineEditorIntro");
+  const help = document.querySelector("#routineEditorHelp");
+
+  if (creating) {
+    document.querySelector("#routineEditorTitle").textContent = "Nueva rutina";
+    intro.textContent = "Crea una rutina desde cero y aparecerá junto al resto para poder seleccionarla y entrenarla.";
+    help.textContent = "Añade los ejercicios que quieras y configura calentamientos, series, rango de repeticiones o trabajo al fallo.";
+    destructive.classList.add("hidden");
+    save.textContent = "Crear rutina";
+    return;
+  }
+
+  document.querySelector("#routineEditorTitle").textContent = `Editar ${editing.name}`;
+  intro.textContent = "Los cambios se aplican al próximo entrenamiento.";
+  help.textContent = "Los nombres de ejercicios ya existentes se mantienen para conservar correctamente su historial. Los ejercicios nuevos sí pueden tener el nombre que quieras.";
+  destructive.classList.remove("hidden");
+  destructive.textContent = isDefaultRoutine(editing.id) ? "Restaurar original" : "Eliminar rutina";
+  save.textContent = "Guardar cambios";
+}
+
 function openEditor(id) {
   createShell();
+  creating = false;
   const routine = getRoutine(id);
   editing = clone(routine);
   editing.exercises = editing.exercises.map(exercise => ({ ...exercise, _isNew: false }));
 
-  document.querySelector("#routineEditorTitle").textContent = `Editar ${routine.name}`;
   document.querySelector("#routineEditorName").value = routine.name;
   document.querySelector("#routineEditorSubtitle").value = routine.subtitle;
+  configureShell();
   renderExercises();
 
   document.querySelector("#routineEditorOverlay").classList.remove("hidden");
   document.body.classList.add("routine-editor-open");
 }
 
+function openCreateEditor() {
+  createShell();
+  creating = true;
+  editing = {
+    id: null,
+    name: "",
+    subtitle: "",
+    exercises: [
+      { name: "", warmup: 0, sets: 3, min: 8, max: 12, _isNew: true }
+    ]
+  };
+
+  document.querySelector("#routineEditorName").value = "";
+  document.querySelector("#routineEditorSubtitle").value = "";
+  configureShell();
+  renderExercises();
+
+  document.querySelector("#routineEditorOverlay").classList.remove("hidden");
+  document.body.classList.add("routine-editor-open");
+  document.querySelector("#routineEditorName")?.focus();
+}
+
 function closeEditor() {
   document.querySelector("#routineEditorOverlay")?.classList.add("hidden");
   document.body.classList.remove("routine-editor-open");
   editing = null;
+  creating = false;
 }
 
 function updateExerciseField(target) {
@@ -232,7 +287,7 @@ function validateEditor() {
   editing.subtitle = document.querySelector("#routineEditorSubtitle").value.trim();
 
   if (!editing.name || !editing.subtitle) {
-    alert("Completa el nombre del día y el subtítulo.");
+    alert("Completa el nombre de la rutina y el subtítulo.");
     return false;
   }
 
@@ -244,7 +299,7 @@ function validateEditor() {
   for (const exercise of editing.exercises) {
     exercise.name = String(exercise.name || "").trim();
     if (!exercise.name) {
-      alert("Hay un ejercicio nuevo sin nombre.");
+      alert("Hay un ejercicio sin nombre.");
       return false;
     }
 
@@ -263,7 +318,7 @@ function validateEditor() {
 
   const names = editing.exercises.map(exercise => exercise.name.toLocaleLowerCase("es"));
   if (new Set(names).size !== names.length) {
-    alert("No puede haber dos ejercicios con el mismo nombre dentro del mismo día.");
+    alert("No puede haber dos ejercicios con el mismo nombre dentro de la misma rutina.");
     return false;
   }
 
@@ -273,35 +328,66 @@ function validateEditor() {
 function saveEditor() {
   if (!validateEditor()) return;
 
+  const clean = clone(editing);
+  clean.exercises.forEach(exercise => delete exercise._isNew);
+
+  if (creating) {
+    createRoutineConfiguration(clean);
+    location.reload();
+    return;
+  }
+
   if (hasActiveProgress(editing.id)) {
     const confirmed = confirm(
-      "Hay una sesión activa de este día. Para aplicar los cambios hay que descartarla. ¿Continuar?"
+      "Hay una sesión activa de esta rutina. Para aplicar los cambios hay que descartarla. ¿Continuar?"
     );
     if (!confirmed) return;
   }
 
-  const clean = clone(editing);
-  clean.exercises.forEach(exercise => delete exercise._isNew);
   saveRoutineConfiguration(clean);
   clearEditedRoutineDraft(editing.id);
   location.reload();
 }
 
-function resetEditor() {
-  if (!editing) return;
+function resetDefaultRoutine() {
   const confirmed = confirm(
-    "¿Restaurar este día exactamente a la rutina original? El historial guardado no se borrará."
+    "¿Restaurar esta rutina exactamente a la versión original? El historial guardado no se borrará."
   );
   if (!confirmed) return;
 
   if (hasActiveProgress(editing.id)) {
-    const discard = confirm("También se descartará la sesión activa de este día. ¿Continuar?");
+    const discard = confirm("También se descartará la sesión activa de esta rutina. ¿Continuar?");
     if (!discard) return;
   }
 
   resetRoutineToDefault(editing.id);
   clearEditedRoutineDraft(editing.id);
   location.reload();
+}
+
+function deleteCustomRoutine() {
+  const confirmed = confirm(
+    `¿Eliminar “${editing.name}”? Los entrenamientos ya guardados seguirán en el historial.`
+  );
+  if (!confirmed) return;
+
+  if (hasActiveProgress(editing.id)) {
+    const discard = confirm("También se descartará la sesión activa de esta rutina. ¿Continuar?");
+    if (!discard) return;
+  }
+
+  const wasActive = loadActiveRoutineId() === editing.id;
+  deleteRoutineConfiguration(editing.id);
+  clearEditedRoutineDraft(editing.id);
+
+  if (wasActive) saveActiveRoutineId("dia1");
+  location.reload();
+}
+
+function destructiveAction() {
+  if (!editing || creating) return;
+  if (isDefaultRoutine(editing.id)) resetDefaultRoutine();
+  else deleteCustomRoutine();
 }
 
 function handleEditorAction(target) {
@@ -316,6 +402,13 @@ function handleEditorAction(target) {
 createShell();
 
 document.addEventListener("click", event => {
+  const createButton = event.target.closest("[data-create-routine]");
+  if (createButton) {
+    event.preventDefault();
+    openCreateEditor();
+    return;
+  }
+
   const editButton = event.target.closest("[data-edit-routine-id]");
   if (editButton) {
     event.preventDefault();
@@ -332,7 +425,7 @@ document.addEventListener("click", event => {
 
   if (event.target.closest("#addRoutineExercise")) addExercise();
   if (event.target.closest("#saveRoutineEditor")) saveEditor();
-  if (event.target.closest("#resetRoutineEditor")) resetEditor();
+  if (event.target.closest("#destructiveRoutineEditor")) destructiveAction();
   if (event.target.closest("#closeRoutineEditor") || event.target.closest("#cancelRoutineEditor")) closeEditor();
 
   const overlay = event.target.closest("#routineEditorOverlay");

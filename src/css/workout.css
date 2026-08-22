@@ -158,6 +158,77 @@
   display: none;
 }
 
+/* FORGE 0.3 — descanso integrado y no bloqueante */
+#restOverlay.overlay {
+  inset: auto;
+  left: 50%;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  width: min(810px, calc(100% - 24px));
+  height: auto;
+  transform: translateX(-50%);
+  display: block;
+  place-items: initial;
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+#restOverlay .rest-sheet {
+  pointer-events: auto;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  backdrop-filter: blur(22px);
+  box-shadow: 0 16px 46px rgba(0,0,0,.34);
+  display: grid;
+  grid-template-columns: auto 92px minmax(120px, 1fr) auto;
+  grid-template-areas:
+    "label time progress actions";
+  gap: 12px;
+  align-items: center;
+}
+
+#restOverlay .eyebrow {
+  grid-area: label;
+  white-space: nowrap;
+}
+
+#restOverlay .rest-time {
+  grid-area: time;
+  margin: 0;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -1.4px;
+  text-align: center;
+}
+
+#restOverlay .rest-progress {
+  grid-area: progress;
+  height: 7px;
+  margin: 0;
+}
+
+#restOverlay .rest-note {
+  display: none;
+}
+
+#restOverlay .rest-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+#restOverlay .rest-actions > * {
+  flex: 0 0 auto;
+  min-width: 58px;
+  min-height: 38px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
 @media (max-width: 650px) {
   .sets-stack {
     gap: 9px;
@@ -188,6 +259,41 @@
   }
 
   .set-row .complete-set { width: 48px; }
+
+  #restOverlay.overlay {
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    width: calc(100% - 18px);
+  }
+
+  #restOverlay .rest-sheet {
+    padding: 10px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "label time"
+      "progress progress"
+      "actions actions";
+    gap: 8px 10px;
+    border-radius: 16px;
+  }
+
+  #restOverlay .eyebrow {
+    font-size: 9px;
+    white-space: normal;
+  }
+
+  #restOverlay .rest-time {
+    font-size: 31px;
+    text-align: right;
+  }
+
+  #restOverlay .rest-actions {
+    justify-content: stretch;
+  }
+
+  #restOverlay .rest-actions > * {
+    flex: 1 1 0;
+    min-height: 40px;
+  }
 }
 
 @media (max-width: 390px) {

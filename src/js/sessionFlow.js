@@ -12,9 +12,18 @@ function forceTodayOnOpen() {
   });
 }
 
+function ensureCoachHistoryStyles() {
+  if (document.querySelector('link[data-forge-coach-history]')) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "./src/css/coach-history.css";
+  link.dataset.forgeCoachHistory = "true";
+  document.head.appendChild(link);
+}
+
 function setVersionBadge() {
   const badge = document.querySelector(".version-badge");
-  if (badge) badge.textContent = "0.8";
+  if (badge) badge.textContent = "0.9";
 }
 
 function cleanLegacyZeroInputs() {
@@ -45,6 +54,8 @@ function bindDiscardWorkout() {
     location.reload();
   });
 }
+
+ensureCoachHistoryStyles();
 
 document.addEventListener("DOMContentLoaded", () => {
   setVersionBadge();

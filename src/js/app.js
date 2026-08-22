@@ -57,6 +57,40 @@ function hasCompletedSets(exercises = []) {
   );
 }
 
+function normalizePendingSets(exercises = []) {
+  for (const exercise of exercises) {
+    for (const set of exercise.sets || []) {
+      if (set.type === "warmup") set.rir = "";
+
+      // Algunos borradores de prototipos anteriores guardaron 0 en campos
+      // que todavía estaban vacíos. Visualmente deben volver a aparecer vacíos.
+      if (!set.done && !Number(set.reps || 0)) {
+        set.reps = "";
+        if (Number(set.weight || 0) === 0) set.weight = "";
+      }
+    }
+  }
+}
+
+function autofillNextWorkSet(exercise, completedSet) {
+  if (!exercise || completedSet?.type !== "work") return;
+
+  const completedIndex = exercise.sets.indexOf(completedSet);
+  if (completedIndex < 0) return;
+
+  const next = exercise.sets
+    .slice(completedIndex + 1)
+    .find(set => set.type === "work" && !set.done);
+
+  if (!next) return;
+
+  // Mantener la carga entre series es el flujo normal. Solo rellenamos si el
+  // usuario todavía no había preparado manualmente la siguiente serie.
+  if ((next.weight === "" || Number(next.weight || 0) === 0) && !Number(next.reps || 0)) {
+    next.weight = completedSet.weight === "" ? "" : Number(completedSet.weight);
+  }
+}
+
 function loadOrCreateDraft() {
   const db = loadDB();
   const saved = loadDraft();
@@ -68,10 +102,11 @@ function loadOrCreateDraft() {
     saved.exercises.length === currentRoutine().exercises.length
   ) {
     state.exercises = saved.exercises;
+    normalizePendingSets(state.exercises);
 
     // Compatibilidad con la versión anterior: si todavía no se había
     // registrado ninguna serie, el cronómetro debe seguir en 00:00.
-    state.workoutStart = hasCompletedSets(saved.exercises)
+    state.workoutStart = hasCompletedSets(state.exercises)
       ? (saved.workoutStart || Date.now())
       : null;
 
@@ -81,6 +116,7 @@ function loadOrCreateDraft() {
 
   state.workoutStart = null;
   state.exercises = createRoutineState(currentRoutine(), db);
+  normalizePendingSets(state.exercises);
   persistDraft();
 }
 
@@ -202,6 +238,7 @@ function toggleSet(exerciseIndex, setIndex) {
   startWorkout();
 
   set.done = true;
+  autofillNextWorkSet(exercise, set);
   persistDraft();
   renderWorkout(currentRoutine(), state);
   renderDashboard(loadDB(), currentRoutine(), loadDraft());
@@ -289,6 +326,7 @@ function finishWorkout() {
   clearDraft();
   state.workoutStart = null;
   state.exercises = createRoutineState(currentRoutine(), db);
+  normalizePendingSets(state.exercises);
   persistDraft();
 
   renderAll();
@@ -378,6 +416,7 @@ function bindEvents() {
       toggleSet(exerciseIndex, Number(target.dataset.setIndex));
     } else if (target.dataset.action === "add-set") {
       addWorkSet(state.exercises[exerciseIndex]);
+      normalizePendingSets([state.exercises[exerciseIndex]]);
       persistDraft();
       renderWorkout(currentRoutine(), state);
     }

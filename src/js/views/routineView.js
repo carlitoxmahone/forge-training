@@ -1,4 +1,21 @@
 import { escapeHtml } from "../core/utils.js";
+import {
+  exerciseModeLabel,
+  normalizeExerciseMode
+} from "../core/exerciseModes.js";
+
+function exercisePreview(exercise) {
+  const mode = normalizeExerciseMode(exercise.mode);
+
+  if (mode === "strength") {
+    return `${exercise.warmup ? `${exercise.warmup} cal. + ` : ""}${exercise.sets} × ${exercise.failure ? "fallo" : `${exercise.min}-${exercise.max}`}`;
+  }
+
+  if (mode === "bodyweight") return `${exercise.sets} × ${exercise.min}-${exercise.max} reps`;
+  if (mode === "maxreps") return `${exercise.sets} × máximas reps`;
+  if (mode === "time") return `${exercise.sets} × ${exercise.targetSeconds} s`;
+  return `${exercise.sets} bloque${exercise.sets === 1 ? "" : "s"} · objetivo ${exercise.targetMinutes} min`;
+}
 
 export function renderRoutineSelector(routines, activeId) {
   const select = document.querySelector("#todayRoutineSelect");
@@ -16,7 +33,7 @@ export function renderRoutineList(routines, activeId) {
       <div>
         <span class="tag">PERSONALIZA FORGE</span>
         <h3>Nueva rutina</h3>
-        <p class="routine-meta">Crea un entrenamiento desde cero y después podrás seleccionarlo como cualquier otro día.</p>
+        <p class="routine-meta">Crea un entrenamiento y mezcla musculación, peso corporal, isométricos o cardio.</p>
       </div>
       <button class="primary" data-create-routine type="button">+ Crear rutina</button>
     </article>
@@ -33,7 +50,7 @@ export function renderRoutineList(routines, activeId) {
           <div>
             <span class="tag">${routine.id === activeId ? "ACTIVA" : escapeHtml(inactiveTag)}</span>
             <h3>${escapeHtml(routine.name)}</h3>
-            <p class="routine-meta">${escapeHtml(routine.subtitle)} · ${routine.exercises.length} ejercicios · ${effective} series efectivas${warmups ? ` + ${warmups} calentamiento` : ""}</p>
+            <p class="routine-meta">${escapeHtml(routine.subtitle)} · ${routine.exercises.length} ejercicios · ${effective} series/bloques${warmups ? ` + ${warmups} calentamiento` : ""}</p>
           </div>
           <div class="routine-card-actions">
             <button class="secondary routine-edit" data-edit-routine-id="${escapeHtml(routine.id)}" type="button">Editar</button>
@@ -46,8 +63,8 @@ export function renderRoutineList(routines, activeId) {
         <div class="exercise-preview">
           ${routine.exercises.map(exercise => `
             <div>
-              <span>${escapeHtml(exercise.name)}</span>
-              <span>${exercise.warmup ? `${exercise.warmup} cal. + ` : ""}${exercise.sets} × ${exercise.failure ? "fallo" : `${exercise.min}-${exercise.max}`}</span>
+              <span>${escapeHtml(exercise.name)} <small>· ${escapeHtml(exerciseModeLabel(exercise.mode))}</small></span>
+              <span>${escapeHtml(exercisePreview(exercise))}</span>
             </div>
           `).join("")}
         </div>

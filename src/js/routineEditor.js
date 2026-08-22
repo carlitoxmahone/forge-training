@@ -12,6 +12,10 @@ import {
   loadActiveRoutineId,
   saveActiveRoutineId
 } from "./core/storage.js";
+import {
+  EXERCISE_MODE_OPTIONS,
+  normalizeExerciseMode
+} from "./core/exerciseModes.js";
 import { escapeHtml } from "./core/utils.js";
 
 let editing = null;
@@ -51,23 +55,23 @@ function createShell() {
       <div class="routine-editor-meta">
         <label>
           <span>Nombre de la rutina</span>
-          <input id="routineEditorName" type="text" maxlength="60" placeholder="Ej. Push pesado">
+          <input id="routineEditorName" type="text" maxlength="60" placeholder="Ej. Full body">
         </label>
         <label>
           <span>Prioridad / subtítulo</span>
-          <input id="routineEditorSubtitle" type="text" maxlength="60" placeholder="Ej. Pecho + tríceps">
+          <input id="routineEditorSubtitle" type="text" maxlength="60" placeholder="Ej. Cardio + core">
         </label>
       </div>
 
       <div class="routine-editor-section-head">
         <div>
           <div class="eyebrow">EJERCICIOS</div>
-          <h3>Orden y pautas</h3>
+          <h3>Orden, tipo y pauta</h3>
         </div>
         <button id="addRoutineExercise" class="secondary" type="button">+ Ejercicio</button>
       </div>
 
-      <p id="routineEditorHelp" class="routine-editor-help">Los nombres de ejercicios ya existentes se mantienen para conservar correctamente su historial. Los ejercicios nuevos sí pueden tener el nombre que quieras.</p>
+      <p id="routineEditorHelp" class="routine-editor-help">El tipo de ejercicio decide qué datos registra FORGE y cómo razona el COACH.</p>
       <div id="routineEditorExercises" class="routine-editor-exercises"></div>
 
       <div class="routine-editor-footer">
@@ -83,17 +87,78 @@ function createShell() {
   document.body.appendChild(overlay);
 }
 
-function numericInput(label, field, value, min, max, disabled = false) {
+function numericInput(label, field, value, min, max, disabled = false, step = 1) {
   return `
     <label class="routine-number-field ${disabled ? "disabled" : ""}">
       <span>${label}</span>
-      <input data-editor-field="${field}" type="number" min="${min}" max="${max}" value="${value ?? ""}" ${disabled ? "disabled" : ""}>
+      <input data-editor-field="${field}" type="number" min="${min}" max="${max}" step="${step}" value="${value ?? ""}" ${disabled ? "disabled" : ""}>
     </label>
   `;
 }
 
+function modeSelect(exercise) {
+  const mode = normalizeExerciseMode(exercise.mode);
+  return `
+    <label class="routine-mode-field">
+      <span>Tipo de ejercicio</span>
+      <select data-editor-field="mode">
+        ${EXERCISE_MODE_OPTIONS.map(option =>
+          `<option value="${option.value}" ${option.value === mode ? "selected" : ""}>${option.label}</option>`
+        ).join("")}
+      </select>
+    </label>
+  `;
+}
+
+function modeFields(exercise) {
+  const mode = normalizeExerciseMode(exercise.mode);
+
+  if (mode === "strength") {
+    const failure = Boolean(exercise.failure);
+    return `
+      ${numericInput("Calent.", "warmup", exercise.warmup ?? 0, 0, 8)}
+      ${numericInput("Series", "sets", exercise.sets ?? 3, 1, 12)}
+      ${numericInput("Rep mín.", "min", failure ? "" : exercise.min, 1, 100, failure)}
+      ${numericInput("Rep máx.", "max", failure ? "" : exercise.max, 1, 100, failure)}
+      <label class="routine-failure-field">
+        <span>Al fallo</span>
+        <input data-editor-field="failure" type="checkbox" ${failure ? "checked" : ""}>
+      </label>
+    `;
+  }
+
+  if (mode === "bodyweight") {
+    return `
+      ${numericInput("Series", "sets", exercise.sets ?? 3, 1, 12)}
+      ${numericInput("Rep mín.", "min", exercise.min ?? 8, 1, 200)}
+      ${numericInput("Rep máx.", "max", exercise.max ?? 12, 1, 200)}
+      <div class="routine-mode-note">Sin kg. FORGE progresa por reps totales, calidad y RIR.</div>
+    `;
+  }
+
+  if (mode === "maxreps") {
+    return `
+      ${numericInput("Series", "sets", exercise.sets ?? 3, 1, 12)}
+      <div class="routine-mode-note">Cada serie se registra a máximas repeticiones técnicas. No hay rango fijo.</div>
+    `;
+  }
+
+  if (mode === "time") {
+    return `
+      ${numericInput("Series", "sets", exercise.sets ?? 3, 1, 12)}
+      ${numericInput("Objetivo (s)", "targetSeconds", exercise.targetSeconds ?? 30, 5, 7200)}
+      <div class="routine-mode-note">Ideal para planchas, isométricos y ejercicios medidos por tiempo.</div>
+    `;
+  }
+
+  return `
+    ${numericInput("Bloques", "sets", exercise.sets ?? 1, 1, 12)}
+    ${numericInput("Objetivo (min)", "targetMinutes", exercise.targetMinutes ?? 20, 1, 600, false, 0.5)}
+    <div class="routine-mode-note">Durante el entrenamiento registrarás minutos y distancia. Sin kg, reps ni RIR.</div>
+  `;
+}
+
 function exerciseRow(exercise, index) {
-  const failure = Boolean(exercise.failure);
   const editableName = Boolean(exercise._isNew);
 
   return `
@@ -103,7 +168,7 @@ function exerciseRow(exercise, index) {
         <div class="routine-editor-exercise-name">
           ${editableName
             ? `<input data-editor-field="name" type="text" maxlength="90" value="${escapeHtml(exercise.name)}" placeholder="Nombre del ejercicio">`
-            : `<strong>${escapeHtml(exercise.name)}</strong><small>Historial protegido</small>`}
+            : `<strong>${escapeHtml(exercise.name)}</strong><small>Nombre protegido para conservar el historial</small>`}
         </div>
         <div class="routine-order-actions">
           <button data-editor-action="up" type="button" aria-label="Subir ejercicio" ${index === 0 ? "disabled" : ""}>↑</button>
@@ -112,15 +177,9 @@ function exerciseRow(exercise, index) {
         </div>
       </div>
 
-      <div class="routine-editor-fields">
-        ${numericInput("Calent.", "warmup", exercise.warmup ?? 0, 0, 8)}
-        ${numericInput("Series", "sets", exercise.sets ?? 3, 1, 12)}
-        ${numericInput("Rep mín.", "min", failure ? "" : exercise.min, 1, 100, failure)}
-        ${numericInput("Rep máx.", "max", failure ? "" : exercise.max, 1, 100, failure)}
-        <label class="routine-failure-field">
-          <span>Al fallo</span>
-          <input data-editor-field="failure" type="checkbox" ${failure ? "checked" : ""}>
-        </label>
+      <div class="routine-editor-type-row">${modeSelect(exercise)}</div>
+      <div class="routine-editor-fields mode-${normalizeExerciseMode(exercise.mode)}">
+        ${modeFields(exercise)}
       </div>
     </article>
   `;
@@ -140,8 +199,8 @@ function configureShell() {
 
   if (creating) {
     document.querySelector("#routineEditorTitle").textContent = "Nueva rutina";
-    intro.textContent = "Crea una rutina desde cero y aparecerá junto al resto para poder seleccionarla y entrenarla.";
-    help.textContent = "Añade los ejercicios que quieras y configura calentamientos, series, rango de repeticiones o trabajo al fallo.";
+    intro.textContent = "Crea una rutina desde cero y mezcla musculación, peso corporal, tiempo o cardio.";
+    help.textContent = "Elige el tipo de cada ejercicio: FORGE cambiará automáticamente los campos y la lógica del COACH.";
     destructive.classList.add("hidden");
     save.textContent = "Crear rutina";
     return;
@@ -149,10 +208,18 @@ function configureShell() {
 
   document.querySelector("#routineEditorTitle").textContent = `Editar ${editing.name}`;
   intro.textContent = "Los cambios se aplican al próximo entrenamiento.";
-  help.textContent = "Los nombres de ejercicios ya existentes se mantienen para conservar correctamente su historial. Los ejercicios nuevos sí pueden tener el nombre que quieras.";
+  help.textContent = "Puedes cambiar el tipo de medición. El nombre de ejercicios existentes permanece protegido para no mezclar historiales.";
   destructive.classList.remove("hidden");
   destructive.textContent = isDefaultRoutine(editing.id) ? "Restaurar original" : "Eliminar rutina";
   save.textContent = "Guardar cambios";
+}
+
+function prepareExercise(exercise, isNew) {
+  return {
+    ...exercise,
+    mode: normalizeExerciseMode(exercise.mode),
+    _isNew: isNew
+  };
 }
 
 function openEditor(id) {
@@ -160,7 +227,7 @@ function openEditor(id) {
   creating = false;
   const routine = getRoutine(id);
   editing = clone(routine);
-  editing.exercises = editing.exercises.map(exercise => ({ ...exercise, _isNew: false }));
+  editing.exercises = editing.exercises.map(exercise => prepareExercise(exercise, false));
 
   document.querySelector("#routineEditorName").value = routine.name;
   document.querySelector("#routineEditorSubtitle").value = routine.subtitle;
@@ -171,6 +238,18 @@ function openEditor(id) {
   document.body.classList.add("routine-editor-open");
 }
 
+function newExercise() {
+  return {
+    name: "",
+    mode: "strength",
+    warmup: 0,
+    sets: 3,
+    min: 8,
+    max: 12,
+    _isNew: true
+  };
+}
+
 function openCreateEditor() {
   createShell();
   creating = true;
@@ -178,9 +257,7 @@ function openCreateEditor() {
     id: null,
     name: "",
     subtitle: "",
-    exercises: [
-      { name: "", warmup: 0, sets: 3, min: 8, max: 12, _isNew: true }
-    ]
+    exercises: [newExercise()]
   };
 
   document.querySelector("#routineEditorName").value = "";
@@ -200,6 +277,32 @@ function closeEditor() {
   creating = false;
 }
 
+function resetFieldsForMode(exercise, mode) {
+  exercise.mode = mode;
+  exercise.failure = false;
+  exercise.warmup = 0;
+
+  if (mode === "strength" || mode === "bodyweight") {
+    exercise.sets = Math.max(1, Number(exercise.sets || 3));
+    exercise.min = 8;
+    exercise.max = 12;
+  } else if (mode === "maxreps") {
+    exercise.sets = Math.max(1, Number(exercise.sets || 3));
+    exercise.min = null;
+    exercise.max = null;
+  } else if (mode === "time") {
+    exercise.sets = Math.max(1, Number(exercise.sets || 3));
+    exercise.targetSeconds = 30;
+    exercise.min = null;
+    exercise.max = null;
+  } else {
+    exercise.sets = 1;
+    exercise.targetMinutes = 20;
+    exercise.min = null;
+    exercise.max = null;
+  }
+}
+
 function updateExerciseField(target) {
   if (!editing) return;
   const row = target.closest("[data-editor-index]");
@@ -210,6 +313,12 @@ function updateExerciseField(target) {
 
   const field = target.dataset.editorField;
   if (!field) return;
+
+  if (field === "mode") {
+    resetFieldsForMode(exercise, normalizeExerciseMode(target.value));
+    renderExercises();
+    return;
+  }
 
   if (field === "failure") {
     exercise.failure = target.checked;
@@ -230,7 +339,9 @@ function updateExerciseField(target) {
   }
 
   const number = Number(target.value);
-  if (["warmup", "sets", "min", "max"].includes(field)) exercise[field] = number;
+  if (["warmup", "sets", "min", "max", "targetSeconds", "targetMinutes"].includes(field)) {
+    exercise[field] = number;
+  }
 }
 
 function moveExercise(index, direction) {
@@ -252,14 +363,7 @@ function removeExercise(index) {
 
 function addExercise() {
   if (!editing) return;
-  editing.exercises.push({
-    name: "",
-    warmup: 0,
-    sets: 3,
-    min: 8,
-    max: 12,
-    _isNew: true
-  });
+  editing.exercises.push(newExercise());
   renderExercises();
   document.querySelector('#routineEditorExercises article:last-child input[data-editor-field="name"]')?.focus();
 }
@@ -298,21 +402,42 @@ function validateEditor() {
 
   for (const exercise of editing.exercises) {
     exercise.name = String(exercise.name || "").trim();
+    exercise.mode = normalizeExerciseMode(exercise.mode);
+
     if (!exercise.name) {
       alert("Hay un ejercicio sin nombre.");
       return false;
     }
 
-    exercise.warmup = Math.max(0, Number(exercise.warmup || 0));
     exercise.sets = Math.max(1, Number(exercise.sets || 1));
 
-    if (!exercise.failure) {
+    if (exercise.mode === "strength") {
+      exercise.warmup = Math.max(0, Number(exercise.warmup || 0));
+      if (!exercise.failure) {
+        exercise.min = Math.max(1, Number(exercise.min || 1));
+        exercise.max = Math.max(1, Number(exercise.max || exercise.min));
+        if (exercise.min > exercise.max) {
+          alert(`En ${exercise.name}, las repeticiones mínimas no pueden superar las máximas.`);
+          return false;
+        }
+      }
+    }
+
+    if (exercise.mode === "bodyweight") {
       exercise.min = Math.max(1, Number(exercise.min || 1));
       exercise.max = Math.max(1, Number(exercise.max || exercise.min));
       if (exercise.min > exercise.max) {
         alert(`En ${exercise.name}, las repeticiones mínimas no pueden superar las máximas.`);
         return false;
       }
+    }
+
+    if (exercise.mode === "time") {
+      exercise.targetSeconds = Math.max(5, Number(exercise.targetSeconds || 30));
+    }
+
+    if (exercise.mode === "cardio") {
+      exercise.targetMinutes = Math.max(1, Number(exercise.targetMinutes || 20));
     }
   }
 
@@ -437,7 +562,9 @@ document.addEventListener("input", event => {
 });
 
 document.addEventListener("change", event => {
-  if (event.target.matches('[data-editor-field="failure"]')) updateExerciseField(event.target);
+  if (event.target.matches('[data-editor-field="failure"], [data-editor-field="mode"]')) {
+    updateExerciseField(event.target);
+  }
 });
 
 document.addEventListener("keydown", event => {

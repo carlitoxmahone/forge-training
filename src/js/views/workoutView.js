@@ -38,7 +38,7 @@ function setRow(set, workNumber, warmupNumber, exerciseIndex, setIndex) {
             type="number"
             step="0.5"
             value="${set.weight}"
-            placeholder="0"
+            placeholder="—"
             ${set.done ? "disabled" : ""}
           >
         </label>

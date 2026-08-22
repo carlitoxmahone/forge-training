@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FORGE">
+  <meta name="description" content="FORGE: registro y progresión de entrenamiento.">
+  <title>FORGE</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+  <link rel="icon" href="./assets/icons/icon-192.png">
+  <link rel="stylesheet" href="./src/css/tokens.css">
+  <link rel="stylesheet" href="./src/css/app.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">ENTRENAMIENTO INTELIGENTE</div>
+        <div class="brand-row">
+          <h1>FORGE</h1>
+          <span class="version-badge">BASE 0.1</span>
+        </div>
+      </div>
+      <button id="themeBtn" class="icon-btn" type="button" aria-label="Cambiar tema">◐</button>
+    </header>
+
+    <main class="main">
+      <section id="tab-today" class="tab-panel">
+        <div class="hero-card">
+          <div class="hero-content">
+            <div class="eyebrow">HOY</div>
+            <h2>Tu entrenamiento</h2>
+            <p id="todaySummary" class="muted"></p>
+
+            <label class="field-label" for="todayRoutineSelect">Día</label>
+            <select id="todayRoutineSelect" class="select-control"></select>
+          </div>
+          <button id="startWorkoutBtn" class="primary hero-action" type="button">Entrenar</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card"><span>Sesiones</span><strong id="statSessions">0</strong></div>
+          <div class="stat-card"><span>Series efectivas</span><strong id="statSets">0</strong></div>
+          <div class="stat-card"><span>Volumen</span><strong id="statVolume">0 kg</strong></div>
+          <div class="stat-card"><span>Mejoras PR</span><strong id="statPRs">0</strong></div>
+        </div>
+
+        <div class="info-card">
+          <div class="eyebrow">SESIÓN ACTIVA</div>
+          <h3 id="draftTitle">Sin series registradas</h3>
+          <p id="draftMeta" class="muted">FORGE guarda automáticamente cada cambio.</p>
+          <button id="resumeWorkoutBtn" class="secondary full-width" type="button">Abrir entrenamiento</button>
+        </div>
+      </section>
+
+      <section id="tab-train" class="tab-panel hidden">
+        <div class="workout-head">
+          <div>
+            <div class="eyebrow">SESIÓN ACTIVA</div>
+            <h2 id="workoutName"></h2>
+            <p id="workoutMeta" class="muted"></p>
+          </div>
+          <div id="workoutClock" class="timer-pill">00:00</div>
+        </div>
+
+        <div class="progress-line"><div id="workoutProgress"></div></div>
+
+        <div id="exerciseList" class="exercise-list"></div>
+
+        <div class="session-summary-card">
+          <div>
+            <span>Series completadas</span>
+            <strong id="sessionSetsDone">0</strong>
+          </div>
+          <div>
+            <span>Volumen actual</span>
+            <strong id="sessionVolume">0 kg</strong>
+          </div>
+          <div>
+            <span>Ejercicios completos</span>
+            <strong id="sessionExercisesDone">0/0</strong>
+          </div>
+        </div>
+
+        <button id="finishWorkoutBtn" class="finish-workout" type="button">Finalizar entrenamiento</button>
+      </section>
+
+      <section id="tab-progress" class="tab-panel hidden">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">PROGRESO</div>
+            <h2>Lo que está mejorando</h2>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <span id="trendExerciseLabel">Tendencia</span>
+          <strong id="trendValue">Sin datos</strong>
+          <div id="trendBars" class="trend-bars"></div>
+          <p id="trendText" class="muted">Completa entrenamientos para generar tendencia.</p>
+        </div>
+
+        <div class="metric-card">
+          <span>Último entrenamiento</span>
+          <strong id="lastWorkoutTitle">—</strong>
+          <p id="lastWorkoutMeta" class="muted">Todavía no hay sesiones finalizadas.</p>
+        </div>
+
+        <div id="historyList" class="history-list"></div>
+      </section>
+
+      <section id="tab-routines" class="tab-panel hidden">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">RUTINA ACTUAL</div>
+            <h2>Entrenamiento Carlos</h2>
+          </div>
+        </div>
+
+        <div id="routineList" class="routine-list"></div>
+
+        <div class="plan-notes">
+          <div class="eyebrow">CRITERIOS DEL PLAN</div>
+          <h3>Cómo entrenarla</h3>
+          <p><strong>Sobrecarga progresiva:</strong> progresar en cargas, repeticiones o técnica respecto a la semana anterior.</p>
+          <p><strong>Técnica:</strong> recorrido completo y peso controlado.</p>
+          <p><strong>Intensidad:</strong> llegar al rango pautado al fallo o cerca del fallo sin perder técnica.</p>
+          <p><strong>Descanso:</strong> no hay un tiempo exacto; recuperarse completamente. Los ejercicios multiarticulares y músculos grandes suelen necesitar más descanso.</p>
+        </div>
+
+        <div class="plan-notes">
+          <div class="eyebrow">ABDOMINALES</div>
+          <h3>2 días por semana</h3>
+          <p>2 ejercicios a elección · 3 series por ejercicio.</p>
+          <p class="muted">Ejemplos del plan: crunch tumbado, planchas, elevación de piernas colgado, crunch en máquina o polea alta.</p>
+        </div>
+      </section>
+
+      <section id="tab-settings" class="tab-panel hidden">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">AJUSTES</div>
+            <h2>FORGE</h2>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <label>
+            Aviso de descanso
+            <select id="restSelect" class="select-control">
+              <option value="0">Manual · sin temporizador</option>
+              <option value="60">1:00</option>
+              <option value="90">1:30</option>
+              <option value="120">2:00</option>
+              <option value="150">2:30</option>
+              <option value="180">3:00</option>
+              <option value="240">4:00</option>
+              <option value="300">5:00</option>
+            </select>
+          </label>
+          <p class="setting-help">Es solo un aviso. La pauta de la rutina es descansar hasta estar preparado para la siguiente serie.</p>
+
+          <div class="profile-actions">
+            <button id="exportBtn" class="secondary" type="button">Exportar copia</button>
+            <label class="secondary import-label">
+              Importar copia
+              <input id="importInput" type="file" accept="application/json" hidden>
+            </label>
+            <button id="resetBtn" class="danger" type="button">Borrar datos</button>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="eyebrow">DESARROLLO</div>
+          <h3>Proyecto preparado para GitHub</h3>
+          <p class="muted">Durante el desarrollo local FORGE desactiva la caché PWA para que Live Server muestre los cambios al instante. Al publicarlo en GitHub Pages la PWA se activa automáticamente.</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Navegación principal">
+      <button data-tab="today" class="active" type="button"><span>⌂</span><small>Hoy</small></button>
+      <button data-tab="train" type="button"><span>＋</span><small>Entrenar</small></button>
+      <button data-tab="progress" type="button"><span>⌁</span><small>Progreso</small></button>
+      <button data-tab="routines" type="button"><span>▦</span><small>Rutinas</small></button>
+      <button data-tab="settings" type="button"><span>●</span><small>Ajustes</small></button>
+    </nav>
+
+    <div id="restOverlay" class="overlay hidden" role="dialog" aria-modal="true">
+      <div class="rest-sheet">
+        <div class="eyebrow">DESCANSO · AVISO ORIENTATIVO</div>
+        <div id="restTime" class="rest-time">03:00</div>
+        <div class="rest-progress"><div id="restProgress"></div></div>
+        <p class="muted rest-note">Si todavía no estás preparado, descansa más.</p>
+        <div class="rest-actions">
+          <button class="secondary" data-rest-add="-15" type="button">−15 s</button>
+          <button id="skipRestBtn" class="secondary" type="button">Cerrar</button>
+          <button class="secondary" data-rest-add="15" type="button">+15 s</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden" aria-live="polite"></div>
+  </div>
+
+  <script type="module" src="./src/js/app.js"></script>
+</body>
+</html>

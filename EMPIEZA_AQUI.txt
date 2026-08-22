@@ -1,0 +1,9 @@
+FORGE — EMPIEZA AQUÍ
+
+1. Mueve esta carpeta a una ubicación definitiva de tu PC.
+2. Ábrela en VS Code con File > Open Folder.
+3. Pulsa Go Live.
+4. NO borres esta carpeta cuando hagamos cambios.
+5. Lee docs/PUESTA_EN_MARCHA.md para conectarla a GitHub.
+
+A partir de ahora esta es la carpeta maestra de FORGE.

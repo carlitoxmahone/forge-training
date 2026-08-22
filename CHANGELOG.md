@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — Coach adaptativo
+
+- El COACH separa su respuesta en Lectura, Siguiente serie y Próxima sesión.
+- La recomendación de la siguiente serie usa rango de repeticiones, RIR y carga actual.
+- La decisión de próxima sesión diferencia entre mantener carga, consolidar repeticiones y subir con el incremento mínimo disponible.
+- El COACH compara con la sesión anterior cuando se repite la misma carga.
+- La progresión no se confirma antes de completar las series efectivas del ejercicio.
+
 ## 0.3.0 — Descanso integrado
 
 - El temporizador de descanso ya no bloquea toda la pantalla.

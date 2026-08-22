@@ -23,7 +23,7 @@ function ensureCoachHistoryStyles() {
 
 function setVersionBadge() {
   const badge = document.querySelector(".version-badge");
-  if (badge) badge.textContent = "0.9";
+  if (badge) badge.textContent = "0.10";
 }
 
 function cleanLegacyZeroInputs() {

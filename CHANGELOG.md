@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0 — COACH histórico + estancamiento
+
+- El COACH analiza ahora hasta las 5 últimas sesiones guardadas de cada ejercicio.
+- Añadida una cuarta zona visible: Tendencia, separada de Lectura, Siguiente serie y Próxima sesión.
+- FORGE diferencia entre referencia insuficiente, rendimiento estable, mejora reciente y progresión sostenida.
+- Se detecta estancamiento cuando 3 sesiones consecutivas mantienen un rendimiento prácticamente igual.
+- Se detecta una caída relevante cuando la última sesión queda claramente por debajo de las referencias recientes.
+- Las recomendaciones de próxima sesión usan la tendencia histórica para decidir entre mantener, confirmar o subir carga.
+- Una caída previa evita progresiones agresivas aunque una sola sesión aislada salga bien.
+- Romper un estancamiento alcanzando el techo del rango en todas las series permite confirmar progresión.
+
 ## 0.8.0 — Editor de rutinas
 
 - Cada día tiene ahora un botón Editar dentro de Rutinas.

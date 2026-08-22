@@ -1,4 +1,4 @@
-const CACHE = "forge-static-0.8.0";
+const CACHE = "forge-static-0.9.0";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const ASSETS = [
   "./src/css/history.css",
   "./src/css/summary.css",
   "./src/css/routine-editor.css",
+  "./src/css/coach-history.css",
   "./src/js/app.js",
   "./src/js/sessionFlow.js",
   "./src/js/exerciseHistory.js",

@@ -1,3 +1,5 @@
+import { normalizeExerciseMode } from "../core/exerciseModes.js";
+
 const STORAGE_KEY = "forge.routines.v1";
 
 export const DEFAULT_ROUTINES = [
@@ -77,26 +79,51 @@ function clone(value) {
 }
 
 function sanitizeExercise(exercise) {
-  const failure = Boolean(exercise?.failure);
-  const sets = Math.max(1, Math.min(12, Number(exercise?.sets || 1)));
-  const warmup = Math.max(0, Math.min(8, Number(exercise?.warmup || 0)));
-  const min = failure ? null : Math.max(1, Math.min(100, Number(exercise?.min || 8)));
-  const max = failure ? null : Math.max(min, Math.min(100, Number(exercise?.max || min)));
-
-  return {
+  const mode = normalizeExerciseMode(exercise?.mode);
+  const sets = Math.max(1, Math.min(12, Number(exercise?.sets || (mode === "cardio" ? 1 : 3))));
+  const base = {
     name: String(exercise?.name || "Ejercicio").trim() || "Ejercicio",
-    warmup,
-    sets,
-    min,
-    max,
-    ...(failure ? { failure: true } : {})
+    mode,
+    sets
   };
+
+  if (mode === "strength") {
+    const failure = Boolean(exercise?.failure);
+    const warmup = Math.max(0, Math.min(8, Number(exercise?.warmup || 0)));
+    const min = failure ? null : Math.max(1, Math.min(100, Number(exercise?.min || 8)));
+    const max = failure ? null : Math.max(min, Math.min(100, Number(exercise?.max || min)));
+    return {
+      ...base,
+      warmup,
+      min,
+      max,
+      ...(failure ? { failure: true } : {})
+    };
+  }
+
+  if (mode === "bodyweight") {
+    const min = Math.max(1, Math.min(200, Number(exercise?.min || 8)));
+    const max = Math.max(min, Math.min(200, Number(exercise?.max || min)));
+    return { ...base, warmup: 0, min, max };
+  }
+
+  if (mode === "maxreps") {
+    return { ...base, warmup: 0, min: null, max: null };
+  }
+
+  if (mode === "time") {
+    const targetSeconds = Math.max(5, Math.min(7200, Number(exercise?.targetSeconds || 30)));
+    return { ...base, warmup: 0, targetSeconds, min: null, max: null };
+  }
+
+  const targetMinutes = Math.max(1, Math.min(600, Number(exercise?.targetMinutes || 20)));
+  return { ...base, warmup: 0, targetMinutes, min: null, max: null };
 }
 
 function sanitizeRoutine(routine, fallback) {
   const exercises = Array.isArray(routine?.exercises) && routine.exercises.length
     ? routine.exercises.map(sanitizeExercise)
-    : clone(fallback.exercises);
+    : fallback.exercises.map(sanitizeExercise);
 
   return {
     id: fallback.id,
@@ -135,12 +162,14 @@ function writeStored(routines) {
 
 function loadRoutines() {
   const stored = readStored();
-  if (!stored) return clone(DEFAULT_ROUTINES);
+  if (!stored) {
+    return DEFAULT_ROUTINES.map(fallback => sanitizeRoutine(fallback, fallback));
+  }
 
   const defaultIds = new Set(DEFAULT_ROUTINES.map(routine => routine.id));
   const defaults = DEFAULT_ROUTINES.map(fallback => {
     const saved = stored.find(routine => routine?.id === fallback.id);
-    return saved ? sanitizeRoutine(saved, fallback) : clone(fallback);
+    return saved ? sanitizeRoutine(saved, fallback) : sanitizeRoutine(fallback, fallback);
   });
 
   const custom = stored
@@ -163,7 +192,7 @@ export function isDefaultRoutine(id) {
 
 export function getDefaultRoutine(id) {
   const found = DEFAULT_ROUTINES.find(routine => routine.id === id);
-  return found ? clone(found) : null;
+  return found ? sanitizeRoutine(found, found) : null;
 }
 
 export function saveRoutineConfiguration(updatedRoutine) {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 — Historial por ejercicio
+
+- El nombre de cada ejercicio abre ahora su historial detallado.
+- El historial muestra las últimas sesiones con peso, repeticiones y RIR.
+- Añadidas métricas de número de sesiones, mejor serie, volumen acumulado y tendencia.
+- Añadido gráfico compacto de rendimiento por sesión.
+- El historial queda preparado como base para que el COACH use contexto de varias sesiones.
+
 ## 0.5.0 — Flujo de sesión activa
 
 - FORGE abre siempre en la pestaña Hoy.

@@ -1,6 +1,15 @@
 import { loadDB } from "./core/storage.js";
 import { formatDate, escapeHtml } from "./core/utils.js";
 
+function ensureStyles() {
+  if (document.querySelector('link[data-forge-history="true"]')) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "./src/css/history.css";
+  link.dataset.forgeHistory = "true";
+  document.head.appendChild(link);
+}
+
 function workSets(exercise) {
   return (exercise?.sets || []).filter(set => set.type !== "warmup" && Number(set.reps || 0) > 0);
 }
@@ -68,6 +77,7 @@ function trendText(sessions) {
 }
 
 function createShell() {
+  ensureStyles();
   if (document.querySelector("#exerciseHistoryOverlay")) return;
 
   const overlay = document.createElement("div");

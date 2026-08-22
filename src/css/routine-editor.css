@@ -74,14 +74,16 @@
 }
 
 .routine-editor-meta label,
-.routine-number-field {
+.routine-number-field,
+.routine-mode-field {
   display: grid;
   gap: 5px;
 }
 
 .routine-editor-meta label > span,
 .routine-number-field > span,
-.routine-failure-field > span {
+.routine-failure-field > span,
+.routine-mode-field > span {
   color: var(--muted);
   font-size: 10px;
   font-weight: 850;
@@ -90,7 +92,8 @@
 
 .routine-editor-meta input,
 .routine-editor-exercise input[type="text"],
-.routine-number-field input {
+.routine-number-field input,
+.routine-mode-field select {
   min-height: 44px;
   width: 100%;
   border: 1px solid var(--line);
@@ -103,7 +106,8 @@
 }
 
 .routine-editor-meta input:focus,
-.routine-editor-exercise input:focus {
+.routine-editor-exercise input:focus,
+.routine-mode-field select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 13%, transparent);
 }
@@ -198,12 +202,32 @@
   color: var(--danger);
 }
 
+.routine-editor-type-row {
+  margin-top: 12px;
+}
+
+.routine-mode-field select {
+  background: color-mix(in srgb, var(--accent) 4%, var(--panel-2));
+}
+
 .routine-editor-fields {
   display: grid;
   grid-template-columns: repeat(4, minmax(78px, 1fr)) minmax(72px, .8fr);
   gap: 8px;
   align-items: end;
-  margin-top: 12px;
+  margin-top: 10px;
+}
+
+.routine-editor-fields.mode-bodyweight,
+.routine-editor-fields.mode-time,
+.routine-editor-fields.mode-cardio,
+.routine-editor-fields.mode-maxreps {
+  grid-template-columns: repeat(2, minmax(110px, 180px)) minmax(180px, 1fr);
+  align-items: stretch;
+}
+
+.routine-editor-fields.mode-bodyweight {
+  grid-template-columns: repeat(3, minmax(95px, 150px)) minmax(180px, 1fr);
 }
 
 .routine-number-field input {
@@ -227,6 +251,19 @@
   width: 22px;
   height: 22px;
   accent-color: var(--accent);
+}
+
+.routine-mode-note {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 4%, var(--panel-2));
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .routine-editor-footer {
@@ -276,8 +313,16 @@
     justify-content: flex-end;
   }
 
-  .routine-editor-fields {
+  .routine-editor-fields,
+  .routine-editor-fields.mode-bodyweight,
+  .routine-editor-fields.mode-time,
+  .routine-editor-fields.mode-cardio,
+  .routine-editor-fields.mode-maxreps {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .routine-mode-note {
+    grid-column: 1 / -1;
   }
 
   .routine-failure-field {

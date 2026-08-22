@@ -1,39 +1,29 @@
 import { loadDB, loadDraft } from "./core/storage.js";
 import { formatClock, escapeHtml } from "./core/utils.js";
+import {
+  normalizeExerciseMode,
+  setHasPerformance,
+  setPerformanceScore,
+  sessionPerformanceScore,
+  formatSetForMode,
+  exerciseModeLabel
+} from "./core/exerciseModes.js";
 
 let pendingFinish = null;
 
 function workSets(exercise) {
+  const mode = normalizeExerciseMode(exercise?.mode);
   return (exercise?.sets || []).filter(set =>
-    set.type !== "warmup" && Number(set.reps || 0) > 0
+    set.type !== "warmup" && setHasPerformance(set, mode)
   );
 }
 
-function setScore(set) {
-  const weight = Number(set.weight || 0);
-  const reps = Number(set.reps || 0);
-  return weight > 0 ? weight * (1 + reps / 30) : reps;
-}
-
-function formatWeight(value) {
-  const weight = Number(value || 0);
-  if (!weight) return "0";
-  return Number.isInteger(weight)
-    ? String(weight)
-    : weight.toFixed(1).replace(".", ",");
-}
-
-function formatSet(set) {
-  const weight = Number(set.weight || 0);
-  const reps = Number(set.reps || 0);
-  if (weight > 0) return `${formatWeight(weight)} kg × ${reps}`;
-  return `${reps} reps`;
-}
-
 function workoutVolume(workout) {
-  return (workout?.exercises || []).reduce((total, exercise) =>
-    total + workSets(exercise).reduce((sum, set) =>
-      sum + Number(set.weight || 0) * Number(set.reps || 0), 0), 0);
+  return (workout?.exercises || []).reduce((total, exercise) => {
+    if (normalizeExerciseMode(exercise.mode) !== "strength") return total;
+    return total + workSets(exercise).reduce((sum, set) =>
+      sum + Number(set.weight || 0) * Number(set.reps || 0), 0);
+  }, 0);
 }
 
 function effectiveSetCount(workout) {
@@ -43,78 +33,80 @@ function effectiveSetCount(workout) {
   );
 }
 
-function previousSetsForExercise(previousWorkouts, exerciseName) {
-  return previousWorkouts.flatMap(workout => {
-    const exercise = (workout.exercises || []).find(item => item.name === exerciseName);
-    return exercise ? workSets(exercise) : [];
-  });
+function previousExerciseSessions(previousWorkouts, exerciseName, modeValue) {
+  const mode = normalizeExerciseMode(modeValue);
+  return previousWorkouts
+    .map(workout => {
+      const exercise = (workout.exercises || []).find(item =>
+        item.name === exerciseName && normalizeExerciseMode(item.mode) === mode
+      );
+      if (!exercise) return null;
+      const sets = workSets(exercise);
+      return sets.length ? { exercise, sets, score: sessionPerformanceScore(sets, mode) } : null;
+    })
+    .filter(Boolean);
 }
 
-function bestRepsAtWeight(sets, weight) {
-  return sets
-    .filter(set => Number(set.weight || 0) === weight)
-    .reduce((best, set) => Math.max(best, Number(set.reps || 0)), 0);
+function sessionReference(exercise, sets) {
+  const mode = normalizeExerciseMode(exercise.mode);
+
+  if (mode === "strength") {
+    const best = [...sets].sort((a, b) =>
+      setPerformanceScore(b, mode) - setPerformanceScore(a, mode)
+    )[0];
+    return `mejor serie ${formatSetForMode(best, mode)}`;
+  }
+
+  if (mode === "bodyweight" || mode === "maxreps") {
+    const total = sets.reduce((sum, set) => sum + Number(set.reps || 0), 0);
+    return `${total} reps totales`;
+  }
+
+  if (mode === "time") {
+    const total = sets.reduce((sum, set) => sum + Number(set.seconds || 0), 0);
+    return `${Math.round(total)} s totales`;
+  }
+
+  const minutes = sets.reduce((sum, set) => sum + Number(set.durationMin || 0), 0);
+  const distance = sets.reduce((sum, set) => sum + Number(set.distanceKm || 0), 0);
+  return distance > 0
+    ? `${minutes.toFixed(1).replace(".", ",")} min · ${distance.toFixed(2).replace(".", ",")} km`
+    : `${minutes.toFixed(1).replace(".", ",")} min`;
 }
 
 function analyseExercise(exercise, previousWorkouts) {
+  const mode = normalizeExerciseMode(exercise.mode);
   const current = workSets(exercise);
   if (!current.length) return null;
 
-  const previous = previousSetsForExercise(previousWorkouts, exercise.name);
-  const currentBest = [...current].sort((a, b) => setScore(b) - setScore(a))[0];
+  const previousSessions = previousExerciseSessions(previousWorkouts, exercise.name, mode);
+  const currentScore = sessionPerformanceScore(current, mode);
 
-  if (!previous.length) {
+  if (!previousSessions.length) {
     return {
       exercise: exercise.name,
       kind: "baseline",
       title: "Referencia inicial",
-      detail: `Primera referencia guardada: ${formatSet(currentBest)}.`
+      detail: `${exerciseModeLabel(mode)} · ${sessionReference(exercise, current)}.`
     };
   }
 
-  const previousBestScore = Math.max(...previous.map(setScore));
-  const currentBestScore = setScore(currentBest);
-  const previousMaxWeight = Math.max(...previous.map(set => Number(set.weight || 0)));
-  const currentMaxWeight = Math.max(...current.map(set => Number(set.weight || 0)));
+  const previousBest = Math.max(...previousSessions.map(session => session.score));
+  if (currentScore <= previousBest + 0.0001) return null;
 
-  const reasons = [];
-
-  if (currentBestScore > previousBestScore + 0.0001) {
-    reasons.push(`mejor rendimiento: ${formatSet(currentBest)}`);
+  let detail = `Nueva mejor referencia: ${sessionReference(exercise, current)}.`;
+  if (mode === "strength") {
+    const best = [...current].sort((a, b) =>
+      setPerformanceScore(b, mode) - setPerformanceScore(a, mode)
+    )[0];
+    detail = `Mejor rendimiento de fuerza: ${formatSetForMode(best, mode)}.`;
   }
-
-  if (currentMaxWeight > previousMaxWeight) {
-    reasons.push(`carga más alta: ${formatWeight(currentMaxWeight)} kg`);
-  }
-
-  let bestRepImprovement = null;
-  for (const set of current) {
-    const weight = Number(set.weight || 0);
-    const reps = Number(set.reps || 0);
-    const oldBest = bestRepsAtWeight(previous, weight);
-    const difference = reps - oldBest;
-
-    if (oldBest > 0 && difference > 0) {
-      if (!bestRepImprovement || difference > bestRepImprovement.difference) {
-        bestRepImprovement = { weight, reps, oldBest, difference };
-      }
-    }
-  }
-
-  if (bestRepImprovement) {
-    const item = bestRepImprovement;
-    reasons.push(
-      `récord de reps con ${formatWeight(item.weight)} kg: ${item.oldBest} → ${item.reps}`
-    );
-  }
-
-  if (!reasons.length) return null;
 
   return {
     exercise: exercise.name,
     kind: "pr",
     title: "Nuevo PR",
-    detail: reasons.join(" · ")
+    detail
   };
 }
 
@@ -132,7 +124,7 @@ function analyseWorkout(workout, previousWorkouts) {
 
   const volume = workoutVolume(workout);
   const previousVolume = previousSameRoutine ? workoutVolume(previousSameRoutine) : null;
-  const volumeDelta = previousVolume && previousVolume > 0
+  const volumeDelta = previousVolume && previousVolume > 0 && volume > 0
     ? (volume / previousVolume - 1) * 100
     : null;
 
@@ -199,22 +191,24 @@ function showSummary(workout, previousWorkouts, draftBeforeSave) {
 
   document.querySelector("#summarySubtitle").textContent = workout.name || "Entrenamiento";
 
-  const volumeComparison = analysis.volumeDelta === null
-    ? "Primera referencia de volumen para este día."
-    : `${analysis.volumeDelta >= 0 ? "+" : ""}${analysis.volumeDelta.toFixed(1)} % frente a la última vez que hiciste este día.`;
+  const volumeComparison = analysis.volume <= 0
+    ? "Esta sesión no usa volumen de carga como métrica principal."
+    : analysis.volumeDelta === null
+      ? "Primera referencia de volumen de carga para este día."
+      : `${analysis.volumeDelta >= 0 ? "+" : ""}${analysis.volumeDelta.toFixed(1)} % frente a la última vez que hiciste este día.`;
 
   const improvements = [...analysis.prs, ...analysis.baselines];
 
   document.querySelector("#workoutSummaryContent").innerHTML = `
     <div class="summary-stats">
       <div><span>Duración</span><strong>${formatClock(duration)}</strong></div>
-      <div><span>Series</span><strong>${setCount}</strong></div>
-      <div><span>Volumen</span><strong>${Math.round(analysis.volume).toLocaleString("es-ES")} kg</strong></div>
+      <div><span>Series / bloques</span><strong>${setCount}</strong></div>
+      <div><span>Volumen carga</span><strong>${analysis.volume > 0 ? `${Math.round(analysis.volume).toLocaleString("es-ES")} kg` : "—"}</strong></div>
       <div><span>Ejercicios</span><strong>${exerciseCount}/${draftTotalExercises}</strong></div>
     </div>
 
     <div class="summary-volume-note">
-      <div class="eyebrow">VOLUMEN DE LA SESIÓN</div>
+      <div class="eyebrow">MÉTRICA DE LA SESIÓN</div>
       <p>${escapeHtml(volumeComparison)}</p>
     </div>
 
@@ -229,7 +223,7 @@ function showSummary(workout, previousWorkouts, draftBeforeSave) {
     <div class="summary-improvements">
       ${improvements.length
         ? improvements.map(renderImprovement).join("")
-        : `<div class="summary-no-pr"><strong>Sin nuevos PRs comparables.</strong><p>La sesión queda guardada y seguirá alimentando el historial y el COACH.</p></div>`}
+        : `<div class="summary-no-pr"><strong>Sin nuevos PRs comparables.</strong><p>La sesión queda guardada y seguirá alimentando el historial y el COACH según el tipo de cada ejercicio.</p></div>`}
     </div>
   `;
 
@@ -275,8 +269,6 @@ function captureFinish() {
 
 document.addEventListener("DOMContentLoaded", createShell);
 
-// Se captura antes de que el botón ejecute finishWorkout() para conservar
-// el historial previo y poder detectar PRs de verdad contra la sesión anterior.
 document.addEventListener("click", event => {
   if (event.target.closest("#finishWorkoutBtn")) captureFinish();
 }, true);

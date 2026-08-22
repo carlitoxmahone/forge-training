@@ -1,4 +1,4 @@
-import { coachMessage } from "../core/coach.js";
+import { coachAdvice } from "../core/coach.js";
 import { formatDate, escapeHtml } from "../core/utils.js";
 import { sessionStats } from "../core/workout.js";
 
@@ -110,6 +110,7 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
   }).join("");
 
   const lastCompleted = [...exercise.sets].reverse().find(set => set.done);
+  const advice = coachAdvice(exercise, lastCompleted);
 
   return `
     <article class="exercise-block ${complete ? "completed" : ""}" data-exercise-index="${exerciseIndex}">
@@ -129,9 +130,19 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
 
       <div class="sets-stack">${rows}</div>
 
-      <div class="exercise-coach">
-        <div class="exercise-coach-label">COACH</div>
-        <div>${escapeHtml(coachMessage(exercise, lastCompleted))}</div>
+      <div class="exercise-coach coach-grid">
+        <div class="coach-section coach-reading">
+          <div class="exercise-coach-label">LECTURA</div>
+          <div>${escapeHtml(advice.reading)}</div>
+        </div>
+        <div class="coach-section coach-next-set">
+          <div class="exercise-coach-label">SIGUIENTE SERIE</div>
+          <div>${escapeHtml(advice.nextSet)}</div>
+        </div>
+        <div class="coach-section coach-next-session">
+          <div class="exercise-coach-label">PRÓXIMA SESIÓN</div>
+          <div>${escapeHtml(advice.nextSession)}</div>
+        </div>
       </div>
 
       <button

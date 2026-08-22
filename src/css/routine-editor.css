@@ -6,6 +6,30 @@
   flex-wrap: wrap;
 }
 
+.routine-create-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 42%, var(--line));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+}
+
+.routine-create-card h3 {
+  margin: 5px 0 4px;
+}
+
+.routine-create-card .routine-meta {
+  max-width: 620px;
+  margin: 0;
+}
+
+.routine-create-card > button {
+  flex: 0 0 auto;
+}
+
 .routine-editor-overlay {
   position: fixed;
   inset: 0;
@@ -218,6 +242,15 @@
 }
 
 @media (max-width: 650px) {
+  .routine-create-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .routine-create-card > button {
+    width: 100%;
+  }
+
   .routine-card-actions {
     width: 100%;
   }

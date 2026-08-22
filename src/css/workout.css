@@ -1,0 +1,205 @@
+/* FORGE 0.2 — Entrada de series optimizada para móvil */
+.sets-stack {
+  display: grid;
+  gap: 8px;
+  padding: 0 18px;
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: minmax(245px, .9fr) minmax(360px, 1.1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 72%, var(--panel));
+  transition: border-color .2s ease, background .2s ease, opacity .2s ease;
+}
+
+.set-row[data-set-kind="warmup"] {
+  background: color-mix(in srgb, var(--warn) 3%, var(--bg));
+}
+
+.set-row.done {
+  opacity: .76;
+  border-color: color-mix(in srgb, var(--good) 30%, var(--line));
+  background: color-mix(in srgb, var(--good) 4%, var(--bg));
+}
+
+.set-row-meta {
+  display: grid;
+  grid-template-columns: auto minmax(72px, 1fr) minmax(82px, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.set-reference { min-width: 0; }
+
+.set-reference span {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .25px;
+  text-transform: uppercase;
+}
+
+.set-reference strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-reference strong { color: var(--accent); }
+
+.set-type {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 3px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.set-type.warmup {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, var(--panel-2));
+}
+
+.set-type.work {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel-2));
+}
+
+.set-controls {
+  display: grid;
+  grid-template-columns: minmax(74px, 1fr) minmax(74px, 1fr) minmax(66px, .8fr) 48px;
+  gap: 8px;
+  align-items: end;
+}
+
+.set-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.set-field > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .35px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.set-field.disabled-field { opacity: .5; }
+
+.set-row .set-input {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 11px;
+  outline: none;
+  font-size: 16px;
+  font-weight: 850;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.set-row .set-input::-webkit-outer-spin-button,
+.set-row .set-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.set-row .set-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.set-row .set-input:disabled {
+  opacity: .72;
+  color: var(--muted);
+}
+
+.set-row .complete-set {
+  width: 48px;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.set-row.done .complete-set {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.exercise-table-wrap,
+.sets-table {
+  display: none;
+}
+
+@media (max-width: 650px) {
+  .sets-stack {
+    gap: 9px;
+    padding: 0 14px;
+  }
+
+  .set-row {
+    grid-template-columns: 1fr;
+    gap: 9px;
+    padding: 10px;
+    border-radius: 13px;
+  }
+
+  .set-row-meta {
+    grid-template-columns: auto 1fr 1fr;
+  }
+
+  .set-reference strong { font-size: 12px; }
+
+  .set-controls {
+    grid-template-columns: minmax(68px, 1fr) minmax(68px, 1fr) minmax(60px, .8fr) 48px;
+    gap: 7px;
+  }
+
+  .set-row .set-input,
+  .set-row .complete-set {
+    height: 48px;
+  }
+
+  .set-row .complete-set { width: 48px; }
+}
+
+@media (max-width: 390px) {
+  .set-row-meta {
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .set-controls {
+    grid-template-columns: 1fr 1fr 58px 46px;
+    gap: 6px;
+  }
+
+  .set-row .complete-set { width: 46px; }
+}

@@ -7,59 +7,77 @@ function setRow(set, workNumber, warmupNumber, exerciseIndex, setIndex) {
   const previous = set.previous
     ? `${Number(set.previous.weight || 0)} × ${Number(set.previous.reps || 0)}`
     : "—";
+  const rirDisabled = set.done || set.type === "warmup";
 
   return `
-    <tr class="${set.done ? "done" : ""}">
-      <td><span class="set-type ${set.type}">${label}</span></td>
-      <td class="prev-cell">${previous}</td>
-      <td class="target-cell">${escapeHtml(set.target)}</td>
-      <td>
-        <input
-          class="set-input"
-          data-action="edit-set"
-          data-field="weight"
-          data-exercise-index="${exerciseIndex}"
-          data-set-index="${setIndex}"
-          inputmode="decimal"
-          type="number"
-          step="0.5"
-          value="${set.weight}"
-          placeholder="kg"
-          ${set.done ? "disabled" : ""}
-        >
-      </td>
-      <td>
-        <input
-          class="set-input"
-          data-action="edit-set"
-          data-field="reps"
-          data-exercise-index="${exerciseIndex}"
-          data-set-index="${setIndex}"
-          inputmode="numeric"
-          type="number"
-          min="0"
-          value="${set.reps}"
-          placeholder="—"
-          ${set.done ? "disabled" : ""}
-        >
-      </td>
-      <td>
-        <input
-          class="set-input"
-          data-action="edit-set"
-          data-field="rir"
-          data-exercise-index="${exerciseIndex}"
-          data-set-index="${setIndex}"
-          inputmode="numeric"
-          type="number"
-          min="0"
-          max="5"
-          value="${set.type === "warmup" ? "" : set.rir}"
-          placeholder="—"
-          ${set.done || set.type === "warmup" ? "disabled" : ""}
-        >
-      </td>
-      <td>
+    <div class="set-row ${set.done ? "done" : ""}" data-set-kind="${set.type}">
+      <div class="set-row-meta">
+        <span class="set-type ${set.type}">${label}</span>
+
+        <div class="set-reference">
+          <span>Anterior</span>
+          <strong>${previous}</strong>
+        </div>
+
+        <div class="set-reference target-reference">
+          <span>Objetivo</span>
+          <strong>${escapeHtml(set.target)}</strong>
+        </div>
+      </div>
+
+      <div class="set-controls">
+        <label class="set-field">
+          <span>kg</span>
+          <input
+            class="set-input"
+            data-action="edit-set"
+            data-field="weight"
+            data-exercise-index="${exerciseIndex}"
+            data-set-index="${setIndex}"
+            inputmode="decimal"
+            type="number"
+            step="0.5"
+            value="${set.weight}"
+            placeholder="0"
+            ${set.done ? "disabled" : ""}
+          >
+        </label>
+
+        <label class="set-field">
+          <span>reps</span>
+          <input
+            class="set-input reps-input"
+            data-action="edit-set"
+            data-field="reps"
+            data-exercise-index="${exerciseIndex}"
+            data-set-index="${setIndex}"
+            inputmode="numeric"
+            type="number"
+            min="0"
+            value="${set.reps}"
+            placeholder="—"
+            ${set.done ? "disabled" : ""}
+          >
+        </label>
+
+        <label class="set-field ${set.type === "warmup" ? "disabled-field" : ""}">
+          <span>RIR</span>
+          <input
+            class="set-input rir-input"
+            data-action="edit-set"
+            data-field="rir"
+            data-exercise-index="${exerciseIndex}"
+            data-set-index="${setIndex}"
+            inputmode="numeric"
+            type="number"
+            min="0"
+            max="5"
+            value="${set.type === "warmup" ? "" : set.rir}"
+            placeholder="—"
+            ${rirDisabled ? "disabled" : ""}
+          >
+        </label>
+
         <button
           class="complete-set"
           data-action="toggle-set"
@@ -68,8 +86,8 @@ function setRow(set, workNumber, warmupNumber, exerciseIndex, setIndex) {
           type="button"
           aria-label="${set.done ? "Desmarcar serie" : "Completar serie"}"
         >${set.done ? "✓" : "○"}</button>
-      </td>
-    </tr>
+      </div>
+    </div>
   `;
 }
 
@@ -109,22 +127,7 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
         <span>${guidance}</span>
       </div>
 
-      <div class="exercise-table-wrap">
-        <table class="sets-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Anterior</th>
-              <th>Objetivo</th>
-              <th>kg</th>
-              <th>reps</th>
-              <th>RIR</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
+      <div class="sets-stack">${rows}</div>
 
       <div class="exercise-coach">
         <div class="exercise-coach-label">COACH</div>

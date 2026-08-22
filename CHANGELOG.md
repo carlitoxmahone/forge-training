@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.0 — Rutinas personalizadas
+
+- Añadido botón Nueva rutina dentro de la pestaña Rutinas.
+- Se pueden crear entrenamientos completos desde cero con nombre y subtítulo propios.
+- Cada rutina nueva permite añadir ejercicios, calentamientos, series, rangos de repeticiones y trabajo al fallo.
+- Las rutinas personalizadas aparecen en el selector de Hoy y se pueden entrenar igual que las rutinas originales.
+- Las rutinas creadas por el usuario se conservan en localStorage y también en las copias de seguridad.
+- Las rutinas personalizadas pueden editarse y eliminarse sin borrar los entrenamientos ya guardados en el historial.
+- Las cinco rutinas originales siguen protegidas y pueden restaurarse a su versión base.
+- Se escapan los nombres personalizados al renderizarlos para evitar que texto introducido por el usuario se interprete como HTML.
+
 ## 0.9.0 — COACH histórico + estancamiento
 
 - El COACH analiza ahora hasta las 5 últimas sesiones guardadas de cada ejercicio.

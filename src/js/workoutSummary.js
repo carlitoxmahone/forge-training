@@ -251,7 +251,9 @@ function captureFinish() {
   const db = loadDB();
   pendingFinish = {
     workoutCount: (db.workouts || []).length,
-    previousWorkouts: structuredClone ? structuredClone(db.workouts || []) : JSON.parse(JSON.stringify(db.workouts || [])),
+    previousWorkouts: typeof structuredClone === "function"
+      ? structuredClone(db.workouts || [])
+      : JSON.parse(JSON.stringify(db.workouts || [])),
     draft: loadDraft()
   };
 
@@ -273,12 +275,13 @@ function captureFinish() {
 
 document.addEventListener("DOMContentLoaded", createShell);
 
+// Se captura antes de que el botón ejecute finishWorkout() para conservar
+// el historial previo y poder detectar PRs de verdad contra la sesión anterior.
 document.addEventListener("click", event => {
-  if (event.target.closest("#finishWorkoutBtn")) {
-    captureFinish();
-    return;
-  }
+  if (event.target.closest("#finishWorkoutBtn")) captureFinish();
+}, true);
 
+document.addEventListener("click", event => {
   if (event.target.closest("#closeWorkoutSummary") || event.target.closest("#summaryDoneBtn")) {
     closeSummary();
     return;

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.0 — Tipos de ejercicio + COACH contextual
+
+- Cada ejercicio puede definirse ahora como Musculación, Peso corporal, Reps máximas, Tiempo/isométrico o Cardio.
+- Las rutinas existentes se migran automáticamente como Musculación para no romper el funcionamiento anterior.
+- El editor cambia sus campos según el tipo: kg/reps/RIR, reps corporales, máximas reps, segundos o minutos + distancia.
+- Flexiones, abdominales y ejercicios de peso corporal ya no reciben recomendaciones de carga como si fueran musculación.
+- Las series de Reps máximas progresan por mejor serie y total de repeticiones, sin un rango obligatorio.
+- Los ejercicios de Tiempo progresan por segundos acumulados y control técnico.
+- Cardio registra duración y distancia y el COACH propone mejorar una sola variable en lugar de aplicar lógica de kg/reps.
+- El historial, las tendencias, los PRs y el resumen final separan los datos por nombre y tipo de ejercicio para no mezclar métricas incompatibles.
+- Las rutinas pueden mezclar distintos tipos de ejercicio dentro de la misma sesión.
+
 ## 0.10.0 — Rutinas personalizadas
 
 - Añadido botón Nueva rutina dentro de la pestaña Rutinas.

@@ -35,6 +35,16 @@ function setVersionBadge() {
   if (badge) badge.textContent = "0.11";
 }
 
+function setContextLabels() {
+  const totalLabel = document.querySelector("#statSets")?.previousElementSibling;
+  const sessionLabel = document.querySelector("#sessionSetsDone")?.previousElementSibling;
+  const volumeLabel = document.querySelector("#sessionVolume")?.previousElementSibling;
+
+  if (totalLabel) totalLabel.textContent = "Series / bloques";
+  if (sessionLabel) sessionLabel.textContent = "Series / bloques";
+  if (volumeLabel) volumeLabel.textContent = "Volumen de carga";
+}
+
 function cleanLegacyZeroInputs() {
   document
     .querySelectorAll('[data-action="edit-set"][data-field="weight"]')
@@ -69,6 +79,7 @@ ensureExerciseModeStyles();
 
 document.addEventListener("DOMContentLoaded", () => {
   setVersionBadge();
+  setContextLabels();
   forceTodayOnOpen();
   cleanLegacyZeroInputs();
   bindDiscardWorkout();

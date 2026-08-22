@@ -9,6 +9,19 @@ function forceTodayOnOpen() {
   });
 }
 
+function cleanLegacyZeroInputs() {
+  document
+    .querySelectorAll('[data-action="edit-set"][data-field="weight"]')
+    .forEach(input => {
+      const row = input.closest(".set-row");
+      if (row?.classList.contains("done")) return;
+      if (input.value !== "0") return;
+
+      input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+}
+
 function bindDiscardWorkout() {
   const button = document.querySelector("#discardWorkoutBtn");
   if (!button) return;
@@ -27,5 +40,6 @@ function bindDiscardWorkout() {
 
 document.addEventListener("DOMContentLoaded", () => {
   forceTodayOnOpen();
+  cleanLegacyZeroInputs();
   bindDiscardWorkout();
 });

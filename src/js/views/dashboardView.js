@@ -16,10 +16,13 @@ function hasActiveDraft(draft) {
 
 export function renderDashboard(db, routine, draft) {
   const workouts = db.workouts || [];
+  const volume = allWorkoutsVolume(workouts);
+
   document.querySelector("#statSessions").textContent = workouts.length;
   document.querySelector("#statSets").textContent = countEffectiveSets(workouts);
-  document.querySelector("#statVolume").textContent =
-    `${Math.round(allWorkoutsVolume(workouts)).toLocaleString("es-ES")} kg`;
+  document.querySelector("#statVolume").textContent = volume > 0
+    ? `${Math.round(volume).toLocaleString("es-ES")} kg`
+    : "—";
   document.querySelector("#statPRs").textContent = countPRImprovements(workouts);
 
   const last = workouts.at(-1);
@@ -39,8 +42,8 @@ export function renderDashboard(db, routine, draft) {
 
   document.querySelector("#draftMeta").textContent = active
     ? (draftWorkSets > 0
-        ? `${draftWorkSets} serie${draftWorkSets === 1 ? "" : "s"} efectiva${draftWorkSets === 1 ? "" : "s"} guardada${draftWorkSets === 1 ? "" : "s"} automáticamente.`
-        : "Sesión iniciada. Todavía no hay series efectivas completadas.")
+        ? `${draftWorkSets} registro${draftWorkSets === 1 ? "" : "s"} guardado${draftWorkSets === 1 ? "" : "s"} automáticamente.`
+        : "Sesión iniciada. Todavía no hay series o bloques completados.")
     : "FORGE guarda automáticamente cada cambio.";
 
   const startButton = document.querySelector("#startWorkoutBtn");

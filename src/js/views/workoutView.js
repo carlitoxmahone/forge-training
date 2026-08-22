@@ -1,104 +1,163 @@
 import { coachAdvice } from "../core/coach.js";
 import { formatDate, escapeHtml } from "../core/utils.js";
 import { sessionStats } from "../core/workout.js";
+import {
+  normalizeExerciseMode,
+  exerciseModeLabel,
+  formatSetForMode,
+  targetForExercise
+} from "../core/exerciseModes.js";
 
-function setRow(set, workNumber, warmupNumber, exerciseIndex, setIndex) {
-  const label = set.type === "warmup" ? `C${warmupNumber}` : workNumber;
-  const previous = set.previous
-    ? `${Number(set.previous.weight || 0)} × ${Number(set.previous.reps || 0)}`
-    : "—";
-  const rirDisabled = set.done || set.type === "warmup";
+function inputField({ label, field, value, exerciseIndex, setIndex, inputmode = "numeric", step = "1", disabled = false, placeholder = "—", extraClass = "" }) {
+  return `
+    <label class="set-field ${disabled ? "disabled-field" : ""} ${extraClass}">
+      <span>${label}</span>
+      <input
+        class="set-input"
+        data-action="edit-set"
+        data-field="${field}"
+        data-exercise-index="${exerciseIndex}"
+        data-set-index="${setIndex}"
+        inputmode="${inputmode}"
+        type="number"
+        min="0"
+        step="${step}"
+        value="${value ?? ""}"
+        placeholder="${placeholder}"
+        ${disabled ? "disabled" : ""}
+      >
+    </label>
+  `;
+}
+
+function setControls(exercise, set, exerciseIndex, setIndex) {
+  const mode = normalizeExerciseMode(exercise.mode);
+  const done = Boolean(set.done);
+
+  if (set.type === "warmup" || mode === "strength") {
+    return `
+      <div class="set-controls" data-control-mode="strength">
+        ${inputField({ label: "kg", field: "weight", value: set.weight, exerciseIndex, setIndex, inputmode: "decimal", step: "0.5", disabled: done })}
+        ${inputField({ label: "reps", field: "reps", value: set.reps, exerciseIndex, setIndex, disabled: done })}
+        ${inputField({ label: "RIR", field: "rir", value: set.type === "warmup" ? "" : set.rir, exerciseIndex, setIndex, disabled: done || set.type === "warmup" })}
+        ${completeButton(set, exerciseIndex, setIndex)}
+      </div>
+    `;
+  }
+
+  if (mode === "bodyweight") {
+    return `
+      <div class="set-controls" data-control-mode="bodyweight">
+        ${inputField({ label: "reps", field: "reps", value: set.reps, exerciseIndex, setIndex, disabled: done })}
+        ${inputField({ label: "RIR", field: "rir", value: set.rir, exerciseIndex, setIndex, disabled: done })}
+        ${completeButton(set, exerciseIndex, setIndex)}
+      </div>
+    `;
+  }
+
+  if (mode === "maxreps") {
+    return `
+      <div class="set-controls" data-control-mode="maxreps">
+        ${inputField({ label: "reps", field: "reps", value: set.reps, exerciseIndex, setIndex, disabled: done })}
+        ${completeButton(set, exerciseIndex, setIndex)}
+      </div>
+    `;
+  }
+
+  if (mode === "time") {
+    return `
+      <div class="set-controls" data-control-mode="time">
+        ${inputField({ label: "segundos", field: "seconds", value: set.seconds, exerciseIndex, setIndex, disabled: done, step: "1" })}
+        ${completeButton(set, exerciseIndex, setIndex)}
+      </div>
+    `;
+  }
 
   return `
-    <div class="set-row ${set.done ? "done" : ""}" data-set-kind="${set.type}">
+    <div class="set-controls" data-control-mode="cardio">
+      ${inputField({ label: "minutos", field: "durationMin", value: set.durationMin, exerciseIndex, setIndex, inputmode: "decimal", step: "0.5", disabled: done })}
+      ${inputField({ label: "km", field: "distanceKm", value: set.distanceKm, exerciseIndex, setIndex, inputmode: "decimal", step: "0.01", disabled: done, placeholder: "opcional" })}
+      ${completeButton(set, exerciseIndex, setIndex)}
+    </div>
+  `;
+}
+
+function completeButton(set, exerciseIndex, setIndex) {
+  return `
+    <button
+      class="complete-set"
+      data-action="toggle-set"
+      data-exercise-index="${exerciseIndex}"
+      data-set-index="${setIndex}"
+      type="button"
+      aria-label="${set.done ? "Desmarcar serie" : "Completar serie"}"
+    >${set.done ? "✓" : "○"}</button>
+  `;
+}
+
+function previousText(exercise, set) {
+  if (!set.previous) return "—";
+  return formatSetForMode(set.previous, set.type === "warmup" ? "strength" : exercise.mode);
+}
+
+function setRow(exercise, set, workNumber, warmupNumber, exerciseIndex, setIndex) {
+  const mode = normalizeExerciseMode(exercise.mode);
+  const label = set.type === "warmup"
+    ? `C${warmupNumber}`
+    : mode === "cardio"
+      ? `B${workNumber}`
+      : workNumber;
+
+  return `
+    <div class="set-row ${set.done ? "done" : ""}" data-set-kind="${set.type}" data-exercise-mode="${mode}">
       <div class="set-row-meta">
         <span class="set-type ${set.type}">${label}</span>
 
         <div class="set-reference">
           <span>Anterior</span>
-          <strong>${previous}</strong>
+          <strong>${escapeHtml(previousText(exercise, set))}</strong>
         </div>
 
         <div class="set-reference target-reference">
           <span>Objetivo</span>
-          <strong>${escapeHtml(set.target)}</strong>
+          <strong>${escapeHtml(set.target || targetForExercise(exercise))}</strong>
         </div>
       </div>
 
-      <div class="set-controls">
-        <label class="set-field">
-          <span>kg</span>
-          <input
-            class="set-input"
-            data-action="edit-set"
-            data-field="weight"
-            data-exercise-index="${exerciseIndex}"
-            data-set-index="${setIndex}"
-            inputmode="decimal"
-            type="number"
-            step="0.5"
-            value="${set.weight}"
-            placeholder="—"
-            ${set.done ? "disabled" : ""}
-          >
-        </label>
-
-        <label class="set-field">
-          <span>reps</span>
-          <input
-            class="set-input reps-input"
-            data-action="edit-set"
-            data-field="reps"
-            data-exercise-index="${exerciseIndex}"
-            data-set-index="${setIndex}"
-            inputmode="numeric"
-            type="number"
-            min="0"
-            value="${set.reps}"
-            placeholder="—"
-            ${set.done ? "disabled" : ""}
-          >
-        </label>
-
-        <label class="set-field ${set.type === "warmup" ? "disabled-field" : ""}">
-          <span>RIR</span>
-          <input
-            class="set-input rir-input"
-            data-action="edit-set"
-            data-field="rir"
-            data-exercise-index="${exerciseIndex}"
-            data-set-index="${setIndex}"
-            inputmode="numeric"
-            type="number"
-            min="0"
-            max="5"
-            value="${set.type === "warmup" ? "" : set.rir}"
-            placeholder="—"
-            ${rirDisabled ? "disabled" : ""}
-          >
-        </label>
-
-        <button
-          class="complete-set"
-          data-action="toggle-set"
-          data-exercise-index="${exerciseIndex}"
-          data-set-index="${setIndex}"
-          type="button"
-          aria-label="${set.done ? "Desmarcar serie" : "Completar serie"}"
-        >${set.done ? "✓" : "○"}</button>
-      </div>
+      ${setControls(exercise, set, exerciseIndex, setIndex)}
     </div>
   `;
 }
 
+function guidanceText(exercise, workSets) {
+  const mode = normalizeExerciseMode(exercise.mode);
+
+  if (mode === "strength") {
+    return exercise.failure
+      ? `${workSets.length} series al fallo.`
+      : `${workSets.length} series efectivas de ${exercise.min}-${exercise.max} reps${exercise.warmup ? ` · ${exercise.warmup} series de calentamiento antes` : ""}.`;
+  }
+
+  if (mode === "bodyweight") {
+    return `${workSets.length} series con tu propio peso · guía ${exercise.min}-${exercise.max} reps. FORGE prioriza el total de reps y la técnica.`;
+  }
+
+  if (mode === "maxreps") {
+    return `${workSets.length} series a máximas repeticiones técnicas. Sin rango fijo.`;
+  }
+
+  if (mode === "time") {
+    return `${workSets.length} series por tiempo · referencia ${exercise.targetSeconds} s por serie.`;
+  }
+
+  return `${workSets.length} bloque${workSets.length === 1 ? "" : "s"} de cardio · referencia ${exercise.targetMinutes} min por bloque. Registra distancia si la conoces.`;
+}
+
 function exerciseCard(exercise, exerciseIndex, totalExercises) {
+  const mode = normalizeExerciseMode(exercise.mode);
   const workSets = exercise.sets.filter(set => set.type === "work");
   const doneWork = workSets.filter(set => set.done).length;
   const complete = workSets.length > 0 && doneWork === workSets.length;
-
-  const guidance = exercise.failure
-    ? `${workSets.length} series al fallo.`
-    : `${workSets.length} series efectivas de ${exercise.min}-${exercise.max} reps${exercise.warmup ? ` · ${exercise.warmup} series de calentamiento antes` : ""}.`;
 
   let workNumber = 0;
   let warmupNumber = 0;
@@ -106,14 +165,15 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
   const rows = exercise.sets.map((set, setIndex) => {
     if (set.type === "work") workNumber += 1;
     else warmupNumber += 1;
-    return setRow(set, workNumber, warmupNumber, exerciseIndex, setIndex);
+    return setRow(exercise, set, workNumber, warmupNumber, exerciseIndex, setIndex);
   }).join("");
 
   const lastCompleted = [...exercise.sets].reverse().find(set => set.done);
   const advice = coachAdvice(exercise, lastCompleted);
+  const unitWord = mode === "cardio" ? "bloques" : "series";
 
   return `
-    <article class="exercise-block ${complete ? "completed" : ""}" data-exercise-index="${exerciseIndex}">
+    <article class="exercise-block ${complete ? "completed" : ""}" data-exercise-index="${exerciseIndex}" data-exercise-mode="${mode}">
       <div class="exercise-block-header">
         <div class="exercise-block-title">
           <div class="exercise-number">EJERCICIO ${exerciseIndex + 1} / ${totalExercises}</div>
@@ -122,11 +182,12 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
             data-action="exercise-history"
             data-exercise-index="${exerciseIndex}"
             data-exercise-name="${escapeHtml(exercise.name)}"
+            data-exercise-mode="${mode}"
             type="button"
             aria-label="Ver historial de ${escapeHtml(exercise.name)}"
           >
             <span>${escapeHtml(exercise.name)}</span>
-            <small>Historial ›</small>
+            <small>${escapeHtml(exerciseModeLabel(mode))} · Historial ›</small>
           </button>
           <p class="muted">Última sesión: ${formatDate(exercise.historyDate)}</p>
         </div>
@@ -135,7 +196,7 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
 
       <div class="exercise-guidance">
         <strong>Pauta</strong>
-        <span>${guidance}</span>
+        <span>${escapeHtml(guidanceText(exercise, workSets))}</span>
       </div>
 
       <div class="sets-stack">${rows}</div>
@@ -146,7 +207,7 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
           <div>${escapeHtml(advice.reading)}</div>
         </div>
         <div class="coach-section coach-next-set">
-          <div class="exercise-coach-label">SIGUIENTE SERIE</div>
+          <div class="exercise-coach-label">SIGUIENTE ${mode === "cardio" ? "BLOQUE" : "SERIE"}</div>
           <div>${escapeHtml(advice.nextSet)}</div>
         </div>
         <div class="coach-section coach-trend">
@@ -164,7 +225,7 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
         data-action="add-set"
         data-exercise-index="${exerciseIndex}"
         type="button"
-      >+ Añadir serie</button>
+      >+ Añadir ${mode === "cardio" ? "bloque" : "serie"}</button>
     </article>
   `;
 }
@@ -174,14 +235,15 @@ export function renderWorkout(routine, state) {
 
   const stats = sessionStats(state.exercises);
   document.querySelector("#workoutMeta").textContent =
-    `${stats.completeExercises}/${stats.totalExercises} ejercicios · ${stats.completedSets} series efectivas`;
+    `${stats.completeExercises}/${stats.totalExercises} ejercicios · ${stats.completedSets} series/bloques completados`;
 
   document.querySelector("#workoutProgress").style.width =
     `${stats.totalSets ? Math.round(stats.completedSets / stats.totalSets * 100) : 0}%`;
 
   document.querySelector("#sessionSetsDone").textContent = stats.completedSets;
-  document.querySelector("#sessionVolume").textContent =
-    `${Math.round(stats.volume).toLocaleString("es-ES")} kg`;
+  document.querySelector("#sessionVolume").textContent = stats.volume > 0
+    ? `${Math.round(stats.volume).toLocaleString("es-ES")} kg`
+    : "—";
   document.querySelector("#sessionExercisesDone").textContent =
     `${stats.completeExercises}/${stats.totalExercises}`;
 

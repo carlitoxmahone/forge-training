@@ -1,10 +1,11 @@
-const CACHE = "forge-static-0.1.0";
+const CACHE = "forge-static-0.2.0";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./src/css/tokens.css",
   "./src/css/app.css",
+  "./src/css/workout.css",
   "./src/js/app.js",
   "./src/js/data/routines.js",
   "./src/js/core/utils.js",

@@ -19,6 +19,10 @@ import {
   addWorkSet,
   sessionStats
 } from "./core/workout.js";
+import {
+  normalizeExerciseMode,
+  setHasPerformance
+} from "./core/exerciseModes.js";
 import { uid, formatClock } from "./core/utils.js";
 import { renderDashboard } from "./views/dashboardView.js";
 import { renderRoutineSelector, renderRoutineList } from "./views/routineView.js";
@@ -59,14 +63,25 @@ function hasCompletedSets(exercises = []) {
 
 function normalizePendingSets(exercises = []) {
   for (const exercise of exercises) {
+    const mode = normalizeExerciseMode(exercise.mode);
+
     for (const set of exercise.sets || []) {
       if (set.type === "warmup") set.rir = "";
+      if (set.done) continue;
 
-      // Algunos borradores de prototipos anteriores guardaron 0 en campos
-      // que todavía estaban vacíos. Visualmente deben volver a aparecer vacíos.
-      if (!set.done && !Number(set.reps || 0)) {
+      if (["strength", "bodyweight", "maxreps"].includes(mode) && !Number(set.reps || 0)) {
         set.reps = "";
-        if (Number(set.weight || 0) === 0) set.weight = "";
+      }
+
+      if ((mode === "strength" || set.type === "warmup") && Number(set.weight || 0) === 0) {
+        set.weight = "";
+      }
+
+      if (mode === "time" && !Number(set.seconds || 0)) set.seconds = "";
+
+      if (mode === "cardio") {
+        if (!Number(set.durationMin || 0)) set.durationMin = "";
+        if (!Number(set.distanceKm || 0)) set.distanceKm = "";
       }
     }
   }
@@ -74,6 +89,7 @@ function normalizePendingSets(exercises = []) {
 
 function autofillNextWorkSet(exercise, completedSet) {
   if (!exercise || completedSet?.type !== "work") return;
+  if (normalizeExerciseMode(exercise.mode) !== "strength") return;
 
   const completedIndex = exercise.sets.indexOf(completedSet);
   if (completedIndex < 0) return;
@@ -84,8 +100,6 @@ function autofillNextWorkSet(exercise, completedSet) {
 
   if (!next) return;
 
-  // Mantener la carga entre series es el flujo normal. Solo rellenamos si el
-  // usuario todavía no había preparado manualmente la siguiente serie.
   if ((next.weight === "" || Number(next.weight || 0) === 0) && !Number(next.reps || 0)) {
     next.weight = completedSet.weight === "" ? "" : Number(completedSet.weight);
   }
@@ -104,8 +118,6 @@ function loadOrCreateDraft() {
     state.exercises = saved.exercises;
     normalizePendingSets(state.exercises);
 
-    // Compatibilidad con la versión anterior: si todavía no se había
-    // registrado ninguna serie, el cronómetro debe seguir en 00:00.
     state.workoutStart = hasCompletedSets(state.exercises)
       ? (saved.workoutStart || Date.now())
       : null;
@@ -202,17 +214,32 @@ function editSet(target) {
   const setIndex = Number(target.dataset.setIndex);
   const field = target.dataset.field;
   const set = state.exercises[exerciseIndex]?.sets[setIndex];
-  if (!set || !["weight", "reps", "rir"].includes(field)) return;
+  const allowed = ["weight", "reps", "rir", "seconds", "durationMin", "distanceKm"];
+  if (!set || !allowed.includes(field)) return;
 
   const raw = target.value;
   set[field] = raw === "" ? "" : Number(raw);
   persistDraft();
 
-  if (field === "weight" || field === "reps") {
+  if (["weight", "reps"].includes(field)) {
     const stats = sessionStats(state.exercises);
-    document.querySelector("#sessionVolume").textContent =
-      `${Math.round(stats.volume).toLocaleString("es-ES")} kg`;
+    document.querySelector("#sessionVolume").textContent = stats.volume > 0
+      ? `${Math.round(stats.volume).toLocaleString("es-ES")} kg`
+      : "—";
   }
+}
+
+function validationMessage(exercise, set) {
+  if (set.type === "warmup") {
+    return Number(set.reps || 0) > 0 ? "" : "Introduce las repeticiones del calentamiento.";
+  }
+
+  const mode = normalizeExerciseMode(exercise.mode);
+  if (setHasPerformance(set, mode)) return "";
+
+  if (mode === "time") return "Introduce los segundos realizados.";
+  if (mode === "cardio") return "Introduce la duración del bloque de cardio.";
+  return "Introduce las repeticiones.";
 }
 
 function toggleSet(exerciseIndex, setIndex) {
@@ -228,13 +255,12 @@ function toggleSet(exerciseIndex, setIndex) {
     return;
   }
 
-  if (!Number(set.reps || 0)) {
-    toast("Introduce las repeticiones.");
+  const error = validationMessage(exercise, set);
+  if (error) {
+    toast(error);
     return;
   }
 
-  // Seguridad: si por cualquier motivo se completa una serie sin haber
-  // entrado mediante el botón Entrenar, aquí comienza la sesión.
   startWorkout();
 
   set.done = true;
@@ -281,17 +307,32 @@ function stopRest() {
   document.querySelector("#restOverlay").classList.add("hidden");
 }
 
+function savedSet(exercise, set) {
+  const mode = normalizeExerciseMode(exercise.mode);
+  return {
+    type: set.type,
+    weight: Number(set.weight || 0),
+    reps: Number(set.reps || 0),
+    rir: set.type === "work" && ["strength", "bodyweight"].includes(mode)
+      ? Number(set.rir ?? 1)
+      : null,
+    seconds: Number(set.seconds || 0),
+    durationMin: Number(set.durationMin || 0),
+    distanceKm: Number(set.distanceKm || 0)
+  };
+}
+
 function finishWorkout() {
   const stats = sessionStats(state.exercises);
 
   if (!stats.completedSets) {
-    toast("No hay series efectivas completadas.");
+    toast("No hay series o bloques completados.");
     return;
   }
 
   if (stats.completedSets < stats.totalSets) {
     const confirmed = confirm(
-      `Has completado ${stats.completedSets} de ${stats.totalSets} series efectivas. ¿Guardar el entrenamiento igualmente?`
+      `Has completado ${stats.completedSets} de ${stats.totalSets} series/bloques. ¿Guardar el entrenamiento igualmente?`
     );
     if (!confirmed) return;
   }
@@ -299,14 +340,10 @@ function finishWorkout() {
   const exercises = state.exercises
     .map(exercise => ({
       name: exercise.name,
+      mode: normalizeExerciseMode(exercise.mode),
       sets: exercise.sets
         .filter(set => set.done)
-        .map(set => ({
-          type: set.type,
-          weight: Number(set.weight || 0),
-          reps: Number(set.reps || 0),
-          rir: set.type === "work" ? Number(set.rir ?? 1) : null
-        }))
+        .map(set => savedSet(exercise, set))
     }))
     .filter(exercise => exercise.sets.length);
 

@@ -5,6 +5,15 @@ import {
 } from "../core/workout.js";
 import { formatDate } from "../core/utils.js";
 
+function hasActiveDraft(draft) {
+  if (!draft) return false;
+  if (draft.workoutStart) return true;
+
+  return (draft.exercises || []).some(exercise =>
+    (exercise.sets || []).some(set => set.done)
+  );
+}
+
 export function renderDashboard(db, routine, draft) {
   const workouts = db.workouts || [];
   document.querySelector("#statSessions").textContent = workouts.length;
@@ -22,10 +31,23 @@ export function renderDashboard(db, routine, draft) {
     .flatMap(exercise => exercise.sets || [])
     .filter(set => set.type === "work" && set.done).length;
 
-  document.querySelector("#draftTitle").textContent =
-    draftWorkSets > 0 ? `${routine.name} en curso` : "Preparado para empezar";
-  document.querySelector("#draftMeta").textContent =
-    draftWorkSets > 0
-      ? `${draftWorkSets} series efectivas guardadas automáticamente.`
-      : "FORGE guarda automáticamente cada cambio.";
+  const active = hasActiveDraft(draft);
+
+  document.querySelector("#draftTitle").textContent = active
+    ? `${routine.name} en curso`
+    : "Preparado para empezar";
+
+  document.querySelector("#draftMeta").textContent = active
+    ? (draftWorkSets > 0
+        ? `${draftWorkSets} serie${draftWorkSets === 1 ? "" : "s"} efectiva${draftWorkSets === 1 ? "" : "s"} guardada${draftWorkSets === 1 ? "" : "s"} automáticamente.`
+        : "Sesión iniciada. Todavía no hay series efectivas completadas.")
+    : "FORGE guarda automáticamente cada cambio.";
+
+  const startButton = document.querySelector("#startWorkoutBtn");
+  const resumeButton = document.querySelector("#resumeWorkoutBtn");
+  const discardButton = document.querySelector("#discardWorkoutBtn");
+
+  if (startButton) startButton.textContent = active ? "Reanudar" : "Entrenar";
+  if (resumeButton) resumeButton.textContent = active ? "Reanudar entrenamiento" : "Abrir entrenamiento";
+  if (discardButton) discardButton.classList.toggle("hidden", !active);
 }

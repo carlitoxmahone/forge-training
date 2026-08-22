@@ -117,7 +117,17 @@ function exerciseCard(exercise, exerciseIndex, totalExercises) {
       <div class="exercise-block-header">
         <div class="exercise-block-title">
           <div class="exercise-number">EJERCICIO ${exerciseIndex + 1} / ${totalExercises}</div>
-          <h3>${escapeHtml(exercise.name)}</h3>
+          <button
+            class="exercise-title-button"
+            data-action="exercise-history"
+            data-exercise-index="${exerciseIndex}"
+            data-exercise-name="${escapeHtml(exercise.name)}"
+            type="button"
+            aria-label="Ver historial de ${escapeHtml(exercise.name)}"
+          >
+            <span>${escapeHtml(exercise.name)}</span>
+            <small>Historial ›</small>
+          </button>
           <p class="muted">Última sesión: ${formatDate(exercise.historyDate)}</p>
         </div>
         <div class="exercise-status">${doneWork}/${workSets.length}</div>

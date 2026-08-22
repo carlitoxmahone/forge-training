@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 — Flujo de series
+
+- Corregido el objetivo absurdo tipo “12-12 reps” en la recomendación de la siguiente serie.
+- Si una serie efectiva queda justo en el mínimo del rango, el COACH propone mantenerlo o sumar una repetición.
+- Al completar una serie efectiva, FORGE copia automáticamente la carga a la siguiente serie si todavía estaba vacía.
+- Los campos pendientes heredados como 0 de prototipos anteriores vuelven a mostrarse vacíos.
+
 ## 0.4.0 — Coach adaptativo
 
 - El COACH separa su respuesta en Lectura, Siguiente serie y Próxima sesión.

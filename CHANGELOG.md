@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — Flujo de sesión activa
+
+- FORGE abre siempre en la pestaña Hoy.
+- Si hay una sesión en curso, Hoy muestra claramente Reanudar entrenamiento.
+- Añadido botón Descartar sesión sin borrar el historial guardado.
+- El estado de sesión activa se diferencia de una sesión nueva preparada para empezar.
+
 ## 0.4.1 — Flujo de series
 
 - Corregido el objetivo absurdo tipo “12-12 reps” en la recomendación de la siguiente serie.

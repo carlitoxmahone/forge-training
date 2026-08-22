@@ -1,8 +1,19 @@
-export function latestExerciseHistory(db, exerciseName) {
+import {
+  normalizeExerciseMode,
+  targetForExercise,
+  setHasPerformance,
+  sessionPerformanceScore
+} from "./exerciseModes.js";
+
+export function latestExerciseHistory(db, exerciseName, modeValue = "strength") {
+  const mode = normalizeExerciseMode(modeValue);
   const workouts = [...(db.workouts || [])].reverse();
 
   for (const workout of workouts) {
-    const exercise = workout.exercises?.find(item => item.name === exerciseName);
+    const exercise = workout.exercises?.find(item =>
+      item.name === exerciseName && normalizeExerciseMode(item.mode) === mode
+    );
+
     if (exercise?.sets?.length) {
       return {
         date: workout.date,
@@ -14,11 +25,38 @@ export function latestExerciseHistory(db, exerciseName) {
   return { date: null, sets: [] };
 }
 
+function emptyWorkSet(definition, previous = null) {
+  const mode = normalizeExerciseMode(definition.mode);
+  const base = {
+    type: "work",
+    previous,
+    target: targetForExercise(definition),
+    weight: "",
+    reps: "",
+    rir: "",
+    seconds: "",
+    durationMin: "",
+    distanceKm: "",
+    done: false
+  };
+
+  if (mode === "strength") {
+    base.weight = previous?.weight ?? "";
+    base.rir = previous?.rir ?? 1;
+  } else if (mode === "bodyweight") {
+    base.rir = previous?.rir ?? 1;
+  }
+
+  return base;
+}
+
 export function createExerciseState(definition, db) {
-  const history = latestExerciseHistory(db, definition.name);
+  const mode = normalizeExerciseMode(definition.mode);
+  const normalized = { ...definition, mode };
+  const history = latestExerciseHistory(db, definition.name, mode);
   const sets = [];
 
-  for (let i = 0; i < (definition.warmup || 0); i++) {
+  for (let i = 0; i < (mode === "strength" ? (definition.warmup || 0) : 0); i++) {
     sets.push({
       type: "warmup",
       previous: null,
@@ -26,26 +64,19 @@ export function createExerciseState(definition, db) {
       weight: "",
       reps: "",
       rir: "",
+      seconds: "",
+      durationMin: "",
+      distanceKm: "",
       done: false
     });
   }
 
   for (let i = 0; i < definition.sets; i++) {
-    const previous = history.sets[i] || null;
-
-    sets.push({
-      type: "work",
-      previous,
-      target: definition.failure ? "Fallo" : `${definition.min}-${definition.max}`,
-      weight: previous?.weight ?? "",
-      reps: "",
-      rir: previous?.rir ?? 1,
-      done: false
-    });
+    sets.push(emptyWorkSet(normalized, history.sets[i] || null));
   }
 
   return {
-    ...definition,
+    ...normalized,
     historyDate: history.date,
     sets
   };
@@ -62,10 +93,16 @@ export function completedWorkSets(exercises) {
 }
 
 export function sessionVolume(exercises) {
-  return completedWorkSets(exercises).reduce(
-    (sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0),
-    0
-  );
+  return (exercises || []).reduce((total, exercise) => {
+    if (normalizeExerciseMode(exercise.mode) !== "strength") return total;
+
+    const exerciseVolume = (exercise.sets || [])
+      .filter(set => set.type === "work" && set.done)
+      .reduce((sum, set) =>
+        sum + Number(set.weight || 0) * Number(set.reps || 0), 0);
+
+    return total + exerciseVolume;
+  }, 0);
 }
 
 export function sessionStats(exercises) {
@@ -90,23 +127,24 @@ export function sessionStats(exercises) {
 
 export function addWorkSet(exercise) {
   const previousWork = [...exercise.sets].reverse().find(set => set.type === "work");
+  const next = emptyWorkSet(exercise, null);
 
-  exercise.sets.push({
-    type: "work",
-    previous: null,
-    target: exercise.failure ? "Fallo" : `${exercise.min}-${exercise.max}`,
-    weight: previousWork?.weight ?? "",
-    reps: "",
-    rir: 1,
-    done: false
-  });
+  if (normalizeExerciseMode(exercise.mode) === "strength") {
+    next.weight = previousWork?.weight ?? "";
+  }
+
+  exercise.sets.push(next);
 }
 
 export function totalWorkoutVolume(workout) {
   return (workout.exercises || []).reduce((sum, exercise) => {
+    if (normalizeExerciseMode(exercise.mode) !== "strength") return sum;
+
     const exerciseVolume = (exercise.sets || [])
       .filter(set => set.type !== "warmup")
-      .reduce((setSum, set) => setSum + Number(set.weight || 0) * Number(set.reps || 0), 0);
+      .reduce((setSum, set) =>
+        setSum + Number(set.weight || 0) * Number(set.reps || 0), 0);
+
     return sum + exerciseVolume;
   }, 0);
 }
@@ -129,18 +167,20 @@ export function countPRImprovements(workouts) {
 
   for (const workout of workouts) {
     for (const exercise of workout.exercises || []) {
-      for (const set of (exercise.sets || []).filter(item => item.type !== "warmup")) {
-        const weight = Number(set.weight || 0);
-        const reps = Number(set.reps || 0);
-        if (!reps) continue;
+      const mode = normalizeExerciseMode(exercise.mode);
+      const sets = (exercise.sets || []).filter(set =>
+        set.type !== "warmup" && setHasPerformance(set, mode)
+      );
+      if (!sets.length) continue;
 
-        const estimated = weight > 0 ? weight * (1 + reps / 30) : reps;
-        if (best[exercise.name] === undefined) {
-          best[exercise.name] = estimated;
-        } else if (estimated > best[exercise.name]) {
-          best[exercise.name] = estimated;
-          improvements += 1;
-        }
+      const score = sessionPerformanceScore(sets, mode);
+      const key = `${exercise.name}::${mode}`;
+
+      if (best[key] === undefined) {
+        best[key] = score;
+      } else if (score > best[key] + 0.0001) {
+        best[key] = score;
+        improvements += 1;
       }
     }
   }

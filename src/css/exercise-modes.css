@@ -1,0 +1,61 @@
+.set-controls[data-control-mode="bodyweight"] {
+  grid-template-columns: minmax(90px, 1fr) minmax(74px, .8fr) 48px;
+}
+
+.set-controls[data-control-mode="maxreps"],
+.set-controls[data-control-mode="time"] {
+  grid-template-columns: minmax(120px, 1fr) 48px;
+}
+
+.set-controls[data-control-mode="cardio"] {
+  grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr) 48px;
+}
+
+.exercise-block[data-exercise-mode="bodyweight"] .exercise-guidance,
+.exercise-block[data-exercise-mode="maxreps"] .exercise-guidance {
+  background: color-mix(in srgb, var(--good) 4%, transparent);
+}
+
+.exercise-block[data-exercise-mode="time"] .exercise-guidance {
+  background: color-mix(in srgb, var(--warn) 4%, transparent);
+}
+
+.exercise-block[data-exercise-mode="cardio"] .exercise-guidance {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.exercise-preview small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+@media (max-width: 650px) {
+  .set-controls[data-control-mode="bodyweight"] {
+    grid-template-columns: minmax(80px, 1fr) minmax(68px, .8fr) 48px;
+  }
+
+  .set-controls[data-control-mode="maxreps"],
+  .set-controls[data-control-mode="time"] {
+    grid-template-columns: minmax(120px, 1fr) 48px;
+  }
+
+  .set-controls[data-control-mode="cardio"] {
+    grid-template-columns: 1fr 1fr 48px;
+  }
+}
+
+@media (max-width: 390px) {
+  .set-controls[data-control-mode="bodyweight"] {
+    grid-template-columns: 1fr 70px 46px;
+  }
+
+  .set-controls[data-control-mode="maxreps"],
+  .set-controls[data-control-mode="time"] {
+    grid-template-columns: 1fr 46px;
+  }
+
+  .set-controls[data-control-mode="cardio"] {
+    grid-template-columns: 1fr 1fr 46px;
+  }
+}

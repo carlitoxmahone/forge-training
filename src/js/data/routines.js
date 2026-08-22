@@ -106,6 +106,18 @@ function sanitizeRoutine(routine, fallback) {
   };
 }
 
+function sanitizeCustomRoutine(routine) {
+  if (!routine?.id || !Array.isArray(routine.exercises) || !routine.exercises.length) return null;
+
+  return {
+    id: String(routine.id),
+    custom: true,
+    name: String(routine.name || "Rutina personalizada").trim() || "Rutina personalizada",
+    subtitle: String(routine.subtitle || "Personalizada").trim() || "Personalizada",
+    exercises: routine.exercises.map(sanitizeExercise)
+  };
+}
+
 function readStored() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -117,14 +129,26 @@ function readStored() {
   }
 }
 
+function writeStored(routines) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(routines));
+}
+
 function loadRoutines() {
   const stored = readStored();
   if (!stored) return clone(DEFAULT_ROUTINES);
 
-  return DEFAULT_ROUTINES.map(fallback => {
+  const defaultIds = new Set(DEFAULT_ROUTINES.map(routine => routine.id));
+  const defaults = DEFAULT_ROUTINES.map(fallback => {
     const saved = stored.find(routine => routine?.id === fallback.id);
     return saved ? sanitizeRoutine(saved, fallback) : clone(fallback);
   });
+
+  const custom = stored
+    .filter(routine => routine?.id && !defaultIds.has(routine.id))
+    .map(sanitizeCustomRoutine)
+    .filter(Boolean);
+
+  return [...defaults, ...custom];
 }
 
 export const ROUTINES = loadRoutines();
@@ -133,26 +157,49 @@ export function getRoutine(id) {
   return ROUTINES.find(routine => routine.id === id) || ROUTINES[0];
 }
 
+export function isDefaultRoutine(id) {
+  return DEFAULT_ROUTINES.some(routine => routine.id === id);
+}
+
 export function getDefaultRoutine(id) {
-  const found = DEFAULT_ROUTINES.find(routine => routine.id === id) || DEFAULT_ROUTINES[0];
-  return clone(found);
+  const found = DEFAULT_ROUTINES.find(routine => routine.id === id);
+  return found ? clone(found) : null;
 }
 
 export function saveRoutineConfiguration(updatedRoutine) {
   const fallback = DEFAULT_ROUTINES.find(routine => routine.id === updatedRoutine?.id);
-  if (!fallback) throw new Error("Rutina no válida.");
+  const existing = ROUTINES.find(routine => routine.id === updatedRoutine?.id);
+  if (!fallback && !existing?.custom) throw new Error("Rutina no válida.");
+
+  const sanitized = fallback
+    ? sanitizeRoutine(updatedRoutine, fallback)
+    : sanitizeCustomRoutine({ ...updatedRoutine, custom: true });
 
   const next = ROUTINES.map(routine =>
-    routine.id === fallback.id
-      ? sanitizeRoutine(updatedRoutine, fallback)
-      : clone(routine)
+    routine.id === updatedRoutine.id ? sanitized : clone(routine)
   );
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  writeStored(next);
+}
+
+export function createRoutineConfiguration(routine) {
+  const id = `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  const sanitized = sanitizeCustomRoutine({ ...routine, id, custom: true });
+  if (!sanitized) throw new Error("Rutina no válida.");
+
+  writeStored([...ROUTINES.map(clone), sanitized]);
+  return id;
+}
+
+export function deleteRoutineConfiguration(id) {
+  if (isDefaultRoutine(id)) throw new Error("Las rutinas originales no se pueden eliminar.");
+  writeStored(ROUTINES.filter(routine => routine.id !== id).map(clone));
 }
 
 export function resetRoutineToDefault(id) {
   const fallback = getDefaultRoutine(id);
+  if (!fallback) throw new Error("Esta rutina no tiene una versión original.");
+
   const next = ROUTINES.map(routine => routine.id === id ? fallback : clone(routine));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  writeStored(next);
 }

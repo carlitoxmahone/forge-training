@@ -21,9 +21,18 @@ function ensureCoachHistoryStyles() {
   document.head.appendChild(link);
 }
 
+function ensureExerciseModeStyles() {
+  if (document.querySelector('link[data-forge-exercise-modes]')) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "./src/css/exercise-modes.css";
+  link.dataset.forgeExerciseModes = "true";
+  document.head.appendChild(link);
+}
+
 function setVersionBadge() {
   const badge = document.querySelector(".version-badge");
-  if (badge) badge.textContent = "0.10";
+  if (badge) badge.textContent = "0.11";
 }
 
 function cleanLegacyZeroInputs() {
@@ -56,6 +65,7 @@ function bindDiscardWorkout() {
 }
 
 ensureCoachHistoryStyles();
+ensureExerciseModeStyles();
 
 document.addEventListener("DOMContentLoaded", () => {
   setVersionBadge();
